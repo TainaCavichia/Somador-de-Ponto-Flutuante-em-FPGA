@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Tutorial Completo — Somador de Ponto Flutuante em FPGA (MCTA024)</title>
+<style>
+  :root {
+    --azul: #1a4d8f;
+    --azul-claro: #e8f1fc;
+    --laranja: #d97706;
+    --laranja-claro: #fff3e0;
+    --verde: #157347;
+    --verde-claro: #e8f6ee;
+    --vermelho: #b91c1c;
+    --vermelho-claro: #fdecec;
+    --roxo: #6b21a8;
+    --roxo-claro: #f3e8fd;
+    --cinza: #444;
+    --borda: #d9d9d9;
+  }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 30px 24px 80px;
+    color: #1c1c1c;
+    line-height: 1.55;
+    background: #fdfdfd;
+  }
+  h1 {
+    color: var(--azul);
+    border-bottom: 4px solid var(--azul);
+    padding-bottom: 10px;
+    font-size: 1.9em;
+  }
+  h2 {
+    color: #fff;
+    background: var(--azul);
+    padding: 10px 16px;
+    border-radius: 6px;
+    margin-top: 48px;
+    font-size: 1.3em;
+  }
+  h3 {
+    color: var(--azul);
+    border-left: 5px solid var(--azul);
+    padding-left: 10px;
+    margin-top: 30px;
+  }
+  h4 { color: var(--cinza); margin-top: 20px; }
+  .box {
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin: 16px 0;
+    border-left: 6px solid;
+  }
+  .teoria { background: var(--azul-claro); border-color: var(--azul); }
+  .acao { background: var(--laranja-claro); border-color: var(--laranja); }
+  .resultado { background: var(--verde-claro); border-color: var(--verde); }
+  .atencao { background: var(--vermelho-claro); border-color: var(--vermelho); }
+  .porque { background: var(--roxo-claro); border-color: var(--roxo); }
+  .box-titulo {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.78em;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .teoria .box-titulo { color: var(--azul); }
+  .acao .box-titulo { color: var(--laranja); }
+  .resultado .box-titulo { color: var(--verde); }
+  .atencao .box-titulo { color: var(--vermelho); }
+  .porque .box-titulo { color: var(--roxo); }
+  pre {
+    background: #1e1e2e;
+    color: #e8e8e8;
+    padding: 14px 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.86em;
+    line-height: 1.45;
+  }
+  code {
+    font-family: "Consolas", "Courier New", monospace;
+  }
+  .inline-code {
+    background: #eee;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: "Consolas", monospace;
+    font-size: 0.92em;
+    color: #a3123a;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 14px 0;
+    font-size: 0.92em;
+  }
+  th, td {
+    border: 1px solid var(--borda);
+    padding: 7px 10px;
+    text-align: center;
+  }
+  th { background: var(--azul); color: #fff; }
+  tr:nth-child(even) { background: #f5f7fa; }
+  .checklist { background: var(--verde-claro); border: 1px solid var(--verde); border-radius: 8px; padding: 16px 20px; }
+  .checklist li { margin-bottom: 6px; }
+  .indice { background: #f0f0f0; border-radius: 8px; padding: 16px 22px; }
+  .indice a { color: var(--azul); text-decoration: none; }
+  .indice a:hover { text-decoration: underline; }
+  .tag { display:inline-block; font-size:0.72em; font-weight:700; padding:2px 8px; border-radius:10px; margin-right:6px; }
+  .tag-abrir { background: var(--laranja); color: #fff; }
+  .tag-digitar { background: var(--azul); color: #fff; }
+  .tag-clicar { background: var(--roxo); color: #fff; }
+  footer { margin-top: 60px; text-align: center; color: #888; font-size: 0.85em; }
+</style>
+</head>
+<body>
+
+<h1>Tutorial Completo — Somador de Ponto Flutuante em FPGA</h1>
+<p><strong>Disciplina:</strong> MCTA024 – Sistemas Digitais (UFABC) &nbsp;|&nbsp; <strong>Professora:</strong> Victoria Alejandra Herrera &nbsp;|&nbsp; <strong>Placa:</strong> DE10-Lite</p>
+
+<div class="box teoria">
+<span class="box-titulo">Como usar este tutorial</span>
+Cada bloco colorido tem um papel fixo, sempre no mesmo padrão:
+<br>🔵 <strong>azul</strong> = teoria/conceito que você precisa entender antes de agir.
+<br>🟠 <strong>laranja</strong> = ação prática: o que abrir, clicar ou digitar, na ordem exata.
+<br>🟣 <strong>roxo</strong> = "por que estou fazendo isso" — a lógica por trás do passo.
+<br>🟢 <strong>verde</strong> = resultado esperado — o que você deve ver na tela se deu certo.
+<br>🔴 <strong>vermelho</strong> = erros comuns e como resolver.
+</div>
+
+<div class="indice">
+<strong>Índice</strong>
+<ol>
+<li><a href="#parte0">Entendendo o projeto antes de tocar no computador</a></li>
+<li><a href="#parte1">Instalar as ferramentas</a></li>
+<li><a href="#parte2">Organizar as pastas do projeto</a></li>
+<li><a href="#parte3">Etapa 1 — Simular o VHDL original com GHDL + GTKWave</a></li>
+<li><a href="#parte4">Etapa 2 — Adaptar o código para a placa DE10-Lite</a></li>
+<li><a href="#parte5">Etapa 3 — Síntese física no Quartus e gravação na placa</a></li>
+<li><a href="#parte6">Etapa 4 — Documentação no GitHub</a></li>
+<li><a href="#checklist">Checklist final</a></li>
+</ol>
+</div>
+
+<h2 id="parte0">Parte 0 — Entendendo o projeto antes de tocar no computador</h2>
+
+<div class="box teoria">
+<span class="box-titulo">O que é esse "ponto flutuante simplificado" de 13 bits</span>
+Um número nesse formato tem três partes, todas em uma única palavra de 13 bits:
+<table>
+<tr><th>Campo</th><th>Tamanho</th><th>Significado</th></tr>
+<tr><td><code>sign</code></td><td>1 bit</td><td>0 = positivo, 1 = negativo</td></tr>
+<tr><td><code>exp</code></td><td>4 bits</td><td>expoente, sempre tratado como número sem sinal (0 a 15)</td></tr>
+<tr><td><code>frac</code></td><td>8 bits</td><td>significando/fração, também sem sinal</td></tr>
+</table>
+O valor representado é: <strong>valor = (−1)<sup>sign</sup> × 0.frac × 2<sup>exp</sup></strong>.<br>
+Exemplo: sign=0, exp="0101" (5), frac="10000000" → 0.10000000 (binário) = 0,5 em decimal → valor = 0,5 × 2⁵ = <strong>16</strong>.
+</div>
+
+<div class="box teoria">
+<span class="box-titulo">Regra de normalização</span>
+Um número só é considerado "válido" (normalizado) se o bit mais significativo (MSB) do <code>frac</code> for '1'. Se o resultado de uma soma tiver esse bit em '0', o circuito precisa <strong>deslocar a fração para a esquerda</strong> até o MSB virar '1', diminuindo o expoente na mesma proporção. Se não sobrar expoente suficiente para isso, o número é pequeno demais e vira zero.
+</div>
+
+<div class="box teoria">
+<span class="box-titulo">Os 4 estágios do circuito (isso é literalmente a estrutura do código VHDL)</span>
+<ol>
+<li><strong>Sort (ordenar):</strong> compara os dois números de entrada e decide qual tem maior magnitude ("big", sufixo <code>b</code>) e qual é menor ("small", sufixo <code>s</code>).</li>
+<li><strong>Align (alinhar):</strong> desloca a fração do número menor para a direita, para igualar os expoentes.</li>
+<li><strong>Add/Sub (somar/subtrair):</strong> soma ou subtrai as frações já alinhadas (soma se os sinais forem iguais, subtrai se forem diferentes — é aritmética em sinal-magnitude).</li>
+<li><strong>Normalize (normalizar):</strong> conta quantos zeros há à esquerda do resultado, desloca para a esquerda essa quantidade e ajusta o expoente. Trata também o caso de "carry-out" (estourou 1 bit na soma) e o caso "ficou pequeno demais, vira zero".</li>
+</ol>
+Essa é exatamente a razão de existirem os sinais <code>fracb</code>, <code>fracs</code>, <code>fraca</code>, <code>sum</code> e <code>fracn</code> no código: cada um representa o dado em um desses 4 estágios.
+</div>
+
+<div class="box porque">
+<span class="box-titulo">Por que o projeto pede para "validar antes de mexer"</span>
+Se você já sair trocando os pinos e adaptando para a placa sem antes provar que o algoritmo matemático funciona, e algo der errado depois, você não vai saber se o erro está na lógica (matemática) ou na adaptação de hardware (pinos). Por isso a Etapa 1 existe: comprovar a matemática isolada, em simulação, sem depender da placa física.
+</div>
+
+<h2 id="parte1">Parte 1 — Instalar as ferramentas no seu computador</h2>
+
+<div class="box teoria">
+<span class="box-titulo">O que cada ferramenta faz</span>
+<ul>
+<li><strong>GHDL:</strong> um compilador/simulador de VHDL que roda por linha de comando. Ele não precisa de placa nenhuma — só "executa" seu código VHDL como se fosse um programa, gerando um arquivo de formas de onda.</li>
+<li><strong>GTKWave:</strong> o programa que abre esse arquivo de formas de onda e desenha os sinais graficamente ao longo do tempo, para você "ver" o circuito funcionando.</li>
+<li><strong>Intel Quartus Prime:</strong> o programa da Intel que converte seu VHDL em um arquivo que a FPGA física entende, e que também grava esse arquivo na placa.</li>
+<li><strong>Git/GitHub:</strong> onde você vai guardar e documentar o projeto (é a entrega final).</li>
+</ul>
+</div>
+
+<h3>1.1 — Se você usa Windows: instale o WSL2 (recomendado)</h3>
+<div class="box acao">
+<span class="box-titulo"><span class="tag tag-abrir">ABRIR</span> Terminal / PowerShell como Administrador</span>
+Clique no menu Iniciar, digite <span class="inline-code">PowerShell</span>, clique com o botão direito em "Windows PowerShell" e escolha <strong>"Executar como administrador"</strong>.
+<br><br><span class="tag tag-digitar">DIGITAR</span> e apertar Enter:
+<pre><code>wsl --install</code></pre>
+Isso instala automaticamente o Ubuntu dentro do Windows. Reinicie o computador quando for pedido. Depois de reiniciar, o Ubuntu abre sozinho e pede para você criar um usuário e senha (pode ser qualquer nome/senha, é só local).
+</div>
+
+<div class="box porque">
+<span class="box-titulo">Por que WSL e não instalar direto no Windows</span>
+GHDL e GTKWave existem para Windows nativo, mas a instalação é bem mais instável (dependências quebradas, PATH mal configurado). No Linux (via WSL) a instalação é uma única linha de comando e é o ambiente que a imensa maioria dos tutoriais e da comunidade usa — inclusive facilita se você travar em algum erro e precisar pesquisar a solução.
+</div>
+
+<div class="box acao">
+<span class="box-titulo"><span class="tag tag-digitar">DIGITAR</span> dentro do terminal Ubuntu (que abriu depois do WSL instalar)</span>
+<pre><code>sudo apt update
+sudo apt install -y ghdl gtkwave git make</code></pre>
+Vai pedir a senha que você criou — digite (não aparece nada na tela enquanto digita, é normal) e aperte Enter.
+</div>
+
+<h3>1.2 — Se você usa Linux nativo (Ubuntu/Debian/Mint etc.)</h3>
+<div class="box acao">
+<span class="box-titulo"><span class="tag tag-abrir">ABRIR</span> o Terminal</span>
+<span class="tag tag-digitar">DIGITAR</span>:
+<pre><code>sudo apt update
+sudo apt install -y ghdl gtkwave git make</code></pre>
+</div>
+
+<h3>1.3 — Se você usa Mac</h3>
+<div class="box acao">
+Instale o <a href="https://brew.sh" target="_blank">Homebrew</a> primeiro (siga o comando do site), depois:
+<pre><code>brew install ghdl gtkwave git</code></pre>
+</div>
+
+<div class="box resultado">
+<span class="box-titulo">Como saber se deu certo</span>
+Digite no terminal:
+<pre><code>ghdl --version
+gtkwave --version</code></pre>
+Se aparecer um número de versão (e não "command not found"), está tudo certo.
+</div>
+
+<h3>1.4 — Instalar o Intel Quartus Prime (Lite Edition)</h3>
+<div class="box acao">
+<span class="box-titulo"><span class="tag tag-abrir">ABRIR</span> o navegador</span>
+Acesse: <span class="inline-code">https://www.intel.com/content/www/us/en/software-kit/download/quartus-prime-lite.html</span>
+<br>1. Escolha a versão mais recente disponível para <strong>Windows</strong> ou <strong>Linux</strong> (o que você tiver).
+<br>2. Na lista de "Additional Software", marque a opção <strong>"MAX 10 FPGA device support"</strong> — isso é obrigatório, é a família do chip da DE10-Lite.
+<br>3. Baixe e instale, aceitando as opções padrão do instalador (o instalador é grande, pode demorar 20-40 min para baixar).
+</div>
+
+<div class="box atencao">
+<span class="box-titulo">Atenção</span>
+O Quartus é pesado (vários GB). Se seu computador tiver pouco espaço/RAM, pode instalar apenas ele em um computador do laboratório da UFABC e fazer as Etapas 1 e 2 (simulação) no seu computador pessoal via WSL, deixando a Etapa 3 (gravação na placa) para o laboratório.
+</div>
+
+<h3>1.5 — Criar conta no GitHub (se ainda não tiver)</h3>
+<div class="box acao">
+Acesse <span class="inline-code">https://github.com</span>, clique em <strong>"Sign up"</strong> e siga o cadastro com seu e-mail.
+</div>
+
+<h2 id="parte2">Parte 2 — Organizar as pastas do projeto</h2>
+
+<div class="box porque">
+<span class="box-titulo">Por que organizar pastas antes de começar</span>
+O relatório final (template do GitHub) vai pedir para você mostrar a evolução do código. Separar em pastas desde o início evita bagunça e facilita nomear os arquivos de forma que qualquer pessoa (inclusive a professora corrigindo) entenda o que é original e o que foi adaptado.
+</div>
+
+<div class="box acao">
+<span class="box-titulo"><span class="tag tag-digitar">DIGITAR</span> no terminal (Ubuntu/WSL)</span>
+<pre><code>mkdir -p ~/somador-pf/rtl_original
+mkdir -p ~/somador-pf/rtl_de10lite
+mkdir -p ~/somador-pf/sim
+mkdir -p ~/somador-pf/docs
+cd ~/somador-pf</code></pre>
+<ul>
+<li><code>rtl_original/</code> → o VHDL exatamente como está no PDF do livro (Etapa 1)</li>
+<li><code>rtl_de10lite/</code> → a versão adaptada para a placa (Etapa 2)</li>
+<li><code>sim/</code> → testbenches e resultados de simulação</li>
+<li><code>docs/</code> → capturas de tela, anotações, o relatório</li>
+</ul>
+</div>
+
+<h2 id="parte3">Parte 3 — Etapa 1: Simular o VHDL original (GHDL + GTKWave)</h2>
+
+<div class="box teoria">
+<span class="box-titulo">Objetivo desta etapa</span>
+Comprovar que o algoritmo matemático (os 4 estágios) funciona, <strong>sem</strong> se preocupar ainda com a placa. Isso é 100% feito no terminal, sem abrir o Quartus.
+</div>
+
+<h3>3.1 — Criar o arquivo do somador</h3>
+<div class="box acao">
+<span class="tag tag-abrir">ABRIR</span> um editor de texto (recomendo o <strong>VS Code</strong> — se não tiver, baixe em <span class="inline-code">code.visualstudio.com</span>, e dentro dele instale a extensão "WSL" para editar os arquivos do Ubuntu diretamente).
+<br><br>Crie o arquivo <span class="inline-code">~/somador-pf/rtl_original/fp_adder.vhd</span> e cole exatamente este conteúdo (é o código do PDF, já limpo dos artefatos de formatação da extração do PDF — funcionalmente idêntico ao original):
+</div>
+
+<pre><code>library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity fp_adder is
+    port(
+        sign1, sign2 : in  std_logic;
+        exp1, exp2   : in  std_logic_vector(3 downto 0);
+        frac1, frac2 : in  std_logic_vector(7 downto 0);
+        sign_out     : out std_logic;
+        exp_out      : out std_logic_vector(3 downto 0);
+        frac_out     : out std_logic_vector(7 downto 0)
+    );
+end fp_adder;
+
+architecture arch of fp_adder is
+    -- sufixos b, s, a, n = big, small, aligned, normalized
+    signal signb, signs : std_logic;
+    signal expb, exps, expn : unsigned(3 downto 0);
+    signal fracb, fracs, fraca, fracn : unsigned(7 downto 0);
+    signal sum_norm : unsigned(7 downto 0);
+    signal exp_diff : unsigned(3 downto 0);
+    signal sum : unsigned(8 downto 0);   -- 1 bit extra para o carry
+    signal leado : unsigned(2 downto 0);
+begin
+
+    -- 1o estagio: ordenar (achar o maior numero)
+    process(sign1, sign2, exp1, exp2, frac1, frac2)
+    begin
+        if (exp1 & frac1) > (exp2 & frac2) then
+            signb <= sign1;  signs <= sign2;
+            expb  <= unsigned(exp1);  exps <= unsigned(exp2);
+            fracb <= unsigned(frac1); fracs <= unsigned(frac2);
+        else
+            signb <= sign2;  signs <= sign1;
+            expb  <= unsigned(exp2);  exps <= unsigned(exp1);
+            fracb <= unsigned(frac2); fracs <= unsigned(frac1);
+        end if;
+    end process;
+
+    -- 2o estagio: alinhar o numero menor
+    exp_diff <= expb - exps;
+    with exp_diff select
+        fraca <=
+            fracs                        when "0000",
+            '0' & fracs(7 downto 1)      when "0001",
+            "00" & fracs(7 downto 2)     when "0010",
+            "000" & fracs(7 downto 3)    when "0011",
+            "0000" & fracs(7 downto 4)   when "0100",
+            "00000" & fracs(7 downto 5)  when "0101",
+            "000000" & fracs(7 downto 6) when "0110",
+            "0000000" & fracs(7)         when "0111",
+            "00000000"                   when others;
+
+    -- 3o estagio: somar ou subtrair
+    sum <= ('0' & fracb) + ('0' & fraca) when signb = signs else
+           ('0' & fracb) - ('0' & fraca);
+
+    -- 4o estagio: normalizar
+    -- contar zeros a esquerda
+    leado <= "000" when sum(7) = '1' else
+             "001" when sum(6) = '1' else
+             "010" when sum(5) = '1' else
+             "011" when sum(4) = '1' else
+             "100" when sum(3) = '1' else
+             "101" when sum(2) = '1' else
+             "110" when sum(1) = '1' else
+             "111";
+
+    -- deslocar a fracao de acordo com os zeros contados
+    with leado select
+        sum_norm <=
+            sum(7 downto 0)             when "000",
+            sum(6 downto 0) & '0'       when "001",
+            sum(5 downto 0) & "00"      when "010",
+            sum(4 downto 0) & "000"     when "011",
+            sum(3 downto 0) & "0000"    when "100",
+            sum(2 downto 0) & "00000"   when "101",
+            sum(1 downto 0) & "000000"  when "110",
+            sum(0) & "0000000"          when others;
+
+    -- normalizar com condicoes especiais
+    process(sum, sum_norm, expb, leado)
+    begin
+        if sum(8) = '1' then
+            expn  <= expb + 1;
+            fracn <= sum(8 downto 1);        -- houve carry-out: desloca p/ direita
+        elsif (leado > expb) then
+            expn  <= (others => '0');
+            fracn <= (others => '0');        -- pequeno demais: vira zero
+        else
+            expn  <= expb - leado;
+            fracn <= sum_norm;
+        end if;
+    end process;
+
+    -- formar a saida
+    sign_out <= signb;
+    exp_out  <= std_logic_vector(expn);
+    frac_out <= std_logic_vector(fracn);
+
+end arch;
+</code></pre>
+
+<div class="box atencao">
+<span class="box-titulo">Atenção ao salvar</span>
+Salve com o nome exato <span class="inline-code">fp_adder.vhd</span> (extensão <span class="inline-code">.vhd</span>, não <span class="inline-code">.txt</span>). No VS Code: Ctrl+S e confirme o nome no campo "Save As".
+</div>
+
+<h3>3.2 — Criar o testbench (o "programa de teste")</h3>
+<div class="box teoria">
+<span class="box-titulo">O que é um testbench</span>
+É um segundo arquivo VHDL que não vira hardware de verdade — ele só existe para simulação. Ele "instancia" (chama) o seu <code>fp_adder</code>, aplica valores de entrada conhecidos, espera um tempo, e você confere na forma de onda se a saída bateu com o valor esperado calculado à mão.
+</div>
+
+<div class="box porque">
+<span class="box-titulo">Por que os 3 casos de teste abaixo</span>
+Escolhi 3 casos que forçam o circuito a passar pelos 3 comportamentos especiais do 4º estágio (normalização) citados no enunciado do projeto — exatamente o que a professora pede para observar:
+<ol>
+<li><strong>Caso A</strong> força um <em>carry-out</em> na soma (resultado "estoura" 1 bit extra).</li>
+<li><strong>Caso B</strong> força uma subtração com <em>zeros à esquerda</em>, testando o deslocamento e a contagem de zeros.</li>
+<li><strong>Caso C</strong> força um resultado <em>pequeno demais</em>, que deve virar zero.</li>
+</ol>
+Fiz as contas à mão para cada um — veja a tabela logo abaixo do código.
+</div>
+
+<div class="box acao">
+Crie o arquivo <span class="inline-code">~/somador-pf/sim/fp_adder_tb.vhd</span>:
+</div>
+
+<pre><code>library ieee;
+use ieee.std_logic_1164.all;
+
+entity fp_adder_tb is
+end fp_adder_tb;
+
+architecture sim of fp_adder_tb is
+    component fp_adder is
+        port(
+            sign1, sign2 : in  std_logic;
+            exp1, exp2   : in  std_logic_vector(3 downto 0);
+            frac1, frac2 : in  std_logic_vector(7 downto 0);
+            sign_out     : out std_logic;
+            exp_out      : out std_logic_vector(3 downto 0);
+            frac_out     : out std_logic_vector(7 downto 0)
+        );
+    end component;
+
+    signal sign1, sign2, sign_out : std_logic;
+    signal exp1, exp2, exp_out : std_logic_vector(3 downto 0);
+    signal frac1, frac2, frac_out : std_logic_vector(7 downto 0);
+begin
+
+    uut: fp_adder port map (
+        sign1 => sign1, sign2 => sign2,
+        exp1 => exp1, exp2 => exp2,
+        frac1 => frac1, frac2 => frac2,
+        sign_out => sign_out, exp_out => exp_out, frac_out => frac_out
+    );
+
+    process
+    begin
+        -- CASO A: forca carry-out
+        sign1 <= '0'; exp1 <= "0110"; frac1 <= "11000000";
+        sign2 <= '0'; exp2 <= "0110"; frac2 <= "10100000";
+        wait for 20 ns;
+        -- esperado: sign_out=0, exp_out="0111", frac_out="10110000"
+
+        -- CASO B: subtracao com zeros a esquerda (testa deslocamento)
+        sign1 <= '0'; exp1 <= "0101"; frac1 <= "10100000";
+        sign2 <= '1'; exp2 <= "0101"; frac2 <= "10010000";
+        wait for 20 ns;
+        -- esperado: sign_out=0, exp_out="0010", frac_out="10000000"
+
+        -- CASO C: resultado pequeno demais, vira zero
+        sign1 <= '0'; exp1 <= "0001"; frac1 <= "10000000";
+        sign2 <= '1'; exp2 <= "0001"; frac2 <= "10000000";
+        wait for 20 ns;
+        -- esperado: exp_out="0000", frac_out="00000000"
+
+        wait;
+    end process;
+
+end sim;
+</code></pre>
+
+<div class="box resultado">
+<span class="box-titulo">Tabela de conferência (o que você deve ver no GTKWave)</span>
+<table>
+<tr><th>Caso</th><th>sign1 exp1 frac1</th><th>sign2 exp2 frac2</th><th>sign_out</th><th>exp_out</th><th>frac_out</th><th>O que prova</th></tr>
+<tr><td>A</td><td>0 0110 11000000</td><td>0 0110 10100000</td><td>0</td><td>0111</td><td>10110000</td><td>carry-out: exp soma 1, frac desloca p/ direita</td></tr>
+<tr><td>B</td><td>0 0101 10100000</td><td>1 0101 10010000</td><td>0</td><td>0010</td><td>10000000</td><td>3 zeros à esquerda contados e deslocados corretamente</td></tr>
+<tr><td>C</td><td>0 0001 10000000</td><td>1 0001 10000000</td><td>—</td><td>0000</td><td>00000000</td><td>cancelamento total → vira zero</td></tr>
+</table>
+</div>
+
+<h3>3.3 — Compilar e simular com GHDL</h3>
+<div class="box acao">
+<span class="tag tag-digitar">DIGITAR</span> no terminal, um comando de cada vez, dentro da pasta <span class="inline-code">~/somador-pf</span>:
+<pre><code>cd ~/somador-pf
+
+# 1) analisa (compila) o somador
+ghdl -a --std=08 rtl_original/fp_adder.vhd
+
+# 2) analisa o testbench
+ghdl -a --std=08 sim/fp_adder_tb.vhd
+
+# 3) elabora (monta) a unidade de teste
+ghdl -e --std=08 fp_adder_tb
+
+# 4) roda a simulacao e grava as formas de onda
+ghdl -r --std=08 fp_adder_tb --wave=sim/onda.ghw
+
+# 5) abre o visualizador
+gtkwave sim/onda.ghw</code></pre>
+</div>
+
+<div class="box porque">
+<span class="box-titulo">Por que cada comando</span>
+GHDL trabalha em 4 fases separadas, como um compilador de verdade: <code>-a</code> (analyze) verifica a sintaxe e "entende" o arquivo; <code>-e</code> (elaborate) monta a hierarquia (liga o testbench ao componente); <code>-r</code> (run) efetivamente simula e salva o resultado no arquivo <code>.ghw</code>; o GTKWave só serve para <em>abrir</em> esse arquivo e desenhar.
+</div>
+
+<div class="box resultado">
+<span class="box-titulo">O que fazer dentro do GTKWave</span>
+1. Na coluna da esquerda (SST), clique em <strong>uut</strong> para expandir os sinais internos.<br>
+2. Selecione os sinais <span class="inline-code">sign1, exp1, frac1, sign2, exp2, frac2, sign_out, exp_out, frac_out</span> e clique em <strong>"Append"</strong> (ou arraste para o painel da direita).<br>
+3. Clique com botão direito em cada sinal → <strong>Data Format → Binary</strong> (ou Hexadecimal, para ficar mais fácil de ler).<br>
+4. Aperte a lupa "Zoom Fit" (ou <span class="inline-code">Ctrl+Shift+F</span>) para ver a linha do tempo inteira.<br>
+5. Compare os valores em cada trecho de 20 ns com a tabela acima.
+</div>
+
+<div class="box atencao">
+<span class="box-titulo">Erros comuns nesta etapa</span>
+<ul>
+<li><strong>"entity fp_adder not found":</strong> você esqueceu de rodar o comando <code>ghdl -a</code> do <code>fp_adder.vhd</code> antes do testbench, ou está em uma pasta diferente. Rode os comandos na ordem, sempre a partir de <code>~/somador-pf</code>.</li>
+<li><strong>gtkwave abre uma janela em branco:</strong> você esqueceu de arrastar os sinais para o painel — o programa não mostra nada por padrão até você adicionar sinais.</li>
+<li><strong>"command not found: ghdl":</strong> a instalação da Parte 1 não terminou certo — rode <code>sudo apt install -y ghdl gtkwave</code> de novo.</li>
+</ul>
+</div>
+
+<h2 id="parte4">Parte 4 — Etapa 2: Adaptar o código para a placa DE10-Lite</h2>
+
+<div class="box teoria">
+<span class="box-titulo">O problema que você precisa resolver aqui</span>
+O circuito <code>fp_adder</code> em si <strong>não muda nada</strong> — ele já é só lógica pura (sem pinos físicos). O que precisa de adaptação é o "circuito de teste" que conecta esse somador aos componentes físicos da placa (chaves, botões, displays). O livro (Listing 3.20 do PDF) fez isso para uma placa antiga com <strong>8 chaves e 4 botões</strong>. A DE10-Lite tem <strong>10 chaves (SW) e apenas 2 botões (KEY)</strong> — ou seja, você tem chaves sobrando e botões faltando, e precisa redistribuir os 26 bits de entrada (13+13) entre o que a placa realmente oferece.
+</div>
+
+<h3>4.1 — Pinos reais da DE10-Lite que você vai usar</h3>
+<div class="box teoria">
+<span class="box-titulo">Tabela oficial (do manual da Terasic DE10-Lite)</span>
+<table>
+<tr><th>Sinal</th><th>Pino FPGA</th><th>Sinal</th><th>Pino FPGA</th></tr>
+<tr><td>CLOCK_50 (MAX10_CLK1_50)</td><td>PIN_P11</td><td>SW[6]</td><td>PIN_A13</td></tr>
+<tr><td>KEY[0]</td><td>PIN_B8</td><td>SW[7]</td><td>PIN_A14</td></tr>
+<tr><td>KEY[1]</td><td>PIN_A7</td><td>SW[8]</td><td>PIN_B14</td></tr>
+<tr><td>SW[0]</td><td>PIN_C10</td><td>SW[9]</td><td>PIN_F15</td></tr>
+<tr><td>SW[1]</td><td>PIN_C11</td><td>HEX0[0..7]</td><td>PIN_C14,E15,C15,C16,E16,D17,C17,D15</td></tr>
+<tr><td>SW[2]</td><td>PIN_D12</td><td>HEX1[0..7]</td><td>ver manual, seguem o mesmo padrão</td></tr>
+<tr><td>SW[3]</td><td>PIN_C12</td><td>HEX2[0..7]</td><td>ver manual</td></tr>
+<tr><td>SW[4]</td><td>PIN_A12</td><td>LEDR[9]</td><td>PIN_B11</td></tr>
+<tr><td>SW[5]</td><td>PIN_B12</td><td>LEDR[0]</td><td>PIN_A8</td></tr>
+</table>
+</div>
+
+<div class="box atencao">
+<span class="box-titulo">Importante — confirme antes de usar</span>
+Estes pinos foram conferidos contra o manual oficial da Terasic (DE10-Lite User Manual). Ainda assim, <strong>abra o PDF do manual da DE10-Lite</strong> (procure "DE10-Lite User Manual" — geralmente está também na página de recursos do Moodle da disciplina) e confira a tabela completa de HEX1 a HEX5 antes de digitar no Quartus, porque o Pin Planner do Quartus (próxima etapa) vai te dar essa lista pronta de qualquer forma — o mais seguro é <strong>usar o Pin Planner do Quartus</strong>, não digitar os pinos de cabeça.
+</div>
+
+<h3>4.2 — A decisão de projeto: como distribuir 26 bits em 10 chaves + 2 botões</h3>
+<div class="box porque">
+<span class="box-titulo">Raciocínio (documente algo parecido com isso no seu relatório)</span>
+Assim como o livro, vamos manter o <strong>operando 1 quase fixo</strong> (poucos bits variáveis, o resto é constante) e usar as chaves/botões livres para controlar o <strong>operando 2</strong> por completo. A diferença da placa antiga para a DE10-Lite é que agora sobram chaves (10 em vez de 8) e faltam botões (2 em vvez de 4). Solução: usar 2 chaves extras no lugar dos 2 botões que faltam para compor o expoente do operando 2, fixando os 2 bits mais significativos desse expoente como constante — isso reduz a faixa de expoentes testáveis, mas ainda permite observar as diferenças de alinhamento (estágio 2) e todos os casos de normalização (estágio 4), que é o que a professora pede para demonstrar.
+</div>
+
+<div class="box acao">
+<span class="box-titulo">Mapeamento proposto</span>
+<table>
+<tr><th>Sinal do fp_adder</th><th>Origem física</th><th>Observação</th></tr>
+<tr><td>sign1</td><td>constante '0'</td><td>igual ao livro</td></tr>
+<tr><td>exp1</td><td>constante "1000"</td><td>igual ao livro</td></tr>
+<tr><td>frac1</td><td>'1' & SW(1) & SW(0) & "10101"</td><td>só 2 bits variáveis, igual ao livro</td></tr>
+<tr><td>sign2</td><td>SW(9)</td><td>era sw(7) no livro; adaptado para a chave mais alta da DE10-Lite</td></tr>
+<tr><td>exp2</td><td>"10" & KEY(1) & KEY(0)</td><td>2 bits fixos + 2 bits dos botões (só 2 botões na DE10-Lite, versus 4 no livro)</td></tr>
+<tr><td>frac2</td><td>'1' & SW(8 downto 2)</td><td>7 chaves, igual em quantidade ao livro (sw(6 downto 0))</td></tr>
+</table>
+Isso usa exatamente as 10 chaves (SW9 + SW8..SW2 + SW1 + SW0) e os 2 botões — nenhum pino sobra, nenhum falta.
+</div>
+
+<h3>4.3 — Saída: aproveitando que a DE10-Lite NÃO precisa de multiplexação</h3>
+<div class="box porque">
+<span class="box-titulo">Uma simplificação importante em relação ao livro</span>
+A placa do livro tinha só 4 dígitos de 7 segmentos compartilhando os mesmos pinos (por isso existiam os sinais <code>an</code> e o componente <code>disp_mux</code> — uma técnica chamada "multiplexação no tempo", que acende um dígito de cada vez, muito rápido, para enganar o olho). <strong>A DE10-Lite tem 6 displays de 7 segmentos (HEX0 a HEX5), cada um com seus próprios 8 pinos dedicados</strong> — ou seja, <strong>você não precisa do <code>disp_mux</code> nem do sinal <code>an</code> na adaptação para a DE10-Lite</strong>. Isso é uma simplificação real que vale a pena registrar no relatório como parte do "porquê" da adaptação.
+</div>
+
+<div class="box acao">
+<span class="box-titulo">Saída proposta</span>
+<ul>
+<li><code>frac_out(3 downto 0)</code> → decodificador de 7 segmentos → <strong>HEX0</strong></li>
+<li><code>frac_out(7 downto 4)</code> → decodificador de 7 segmentos → <strong>HEX1</strong></li>
+<li><code>exp_out</code> → decodificador de 7 segmentos → <strong>HEX2</strong></li>
+<li><code>sign_out</code> → <strong>LEDR(9)</strong> (LED aceso = número negativo)</li>
+</ul>
+</div>
+
+<h3>4.4 — Escrever o decodificador de 7 segmentos (hex_to_sseg)</h3>
+<div class="box teoria">
+<span class="box-titulo">Por que precisamos desse componente</span>
+O PDF do livro cita um componente chamado <code>hex_to_sseg</code>, mas não mostra o código dele nesse trecho (provavelmente está em outro capítulo do livro, disponibilizado pela professora no Moodle). Ele converte um número de 4 bits (0 a F em hexadecimal) nos 7 sinais que acendem os segmentos do display. <strong>Antes de usar o código abaixo, procure no material do Moodle (o link da Etapa "Onde fazer?") se a professora já forneceu esse componente pronto</strong> — se sim, use o dela para manter consistência com o resto da turma. Se não encontrar, aqui vai uma implementação de referência válida para os displays da DE10-Lite (que são de <strong>catodo comum / segmentos ativos em nível baixo</strong> — ou seja, '0' aceso, '1' apagado):
+</div>
+
+<div class="box acao">
+Crie <span class="inline-code">~/somador-pf/rtl_de10lite/hex_to_sseg.vhd</span>:
+</div>
+<pre><code>library ieee;
+use ieee.std_logic_1164.all;
+
+entity hex_to_sseg is
+    port(
+        hex  : in  std_logic_vector(3 downto 0);
+        sseg : out std_logic_vector(6 downto 0)  -- g f e d c b a (ativo em '0')
+    );
+end hex_to_sseg;
+
+architecture arch of hex_to_sseg is
+begin
+    with hex select
+        sseg <= "1000000" when "0000",  -- 0
+                "1111001" when "0001",  -- 1
+                "0100100" when "0010",  -- 2
+                "0110000" when "0011",  -- 3
+                "0011001" when "0100",  -- 4
+                "0010010" when "0101",  -- 5
+                "0000010" when "0110",  -- 6
+                "1111000" when "0111",  -- 7
+                "0000000" when "1000",  -- 8
+                "0010000" when "1001",  -- 9
+                "0001000" when "1010",  -- A
+                "0000011" when "1011",  -- b
+                "1000110" when "1100",  -- C
+                "0100001" when "1101",  -- d
+                "0000110" when "1110",  -- E
+                "0001110" when others;  -- F
+end arch;
+</code></pre>
+
+<div class="box atencao">
+<span class="box-titulo">Confirme a polaridade</span>
+Antes de gravar na placa, abra o manual da DE10-Lite e confirme se os segmentos são mesmo ativos em '0'. Se ao gravar os displays mostrarem tudo apagado quando deveria estar aceso (ou vice-versa), inverta todos os bits do vetor <code>sseg</code> (troque cada '0' por '1' e vice-versa) — é o erro mais comum e mais rápido de corrigir nessa etapa.
+</div>
+
+<h3>4.5 — Escrever o "top level" (o arquivo que junta tudo e liga aos pinos)</h3>
+<div class="box acao">
+Crie <span class="inline-code">~/somador-pf/rtl_de10lite/fp_adder_de10lite.vhd</span>:
+</div>
+<pre><code>library ieee;
+use ieee.std_logic_1164.all;
+
+entity fp_adder_de10lite is
+    port(
+        SW   : in  std_logic_vector(9 downto 0);
+        KEY  : in  std_logic_vector(1 downto 0);
+        LEDR : out std_logic_vector(9 downto 0);
+        HEX0 : out std_logic_vector(6 downto 0);
+        HEX1 : out std_logic_vector(6 downto 0);
+        HEX2 : out std_logic_vector(6 downto 0)
+    );
+end fp_adder_de10lite;
+
+architecture arch of fp_adder_de10lite is
+    signal sign1, sign2, sign_out : std_logic;
+    signal exp1, exp2, exp_out : std_logic_vector(3 downto 0);
+    signal frac1, frac2, frac_out : std_logic_vector(7 downto 0);
+
+    component fp_adder is
+        port(
+            sign1, sign2 : in  std_logic;
+            exp1, exp2   : in  std_logic_vector(3 downto 0);
+            frac1, frac2 : in  std_logic_vector(7 downto 0);
+            sign_out     : out std_logic;
+            exp_out      : out std_logic_vector(3 downto 0);
+            frac_out     : out std_logic_vector(7 downto 0)
+        );
+    end component;
+
+    component hex_to_sseg is
+        port(
+            hex  : in  std_logic_vector(3 downto 0);
+            sseg : out std_logic_vector(6 downto 0)
+        );
+    end component;
+begin
+    -- mapeamento de entradas (ver secao 4.2 do tutorial)
+    sign1 <= '0';
+    exp1  <= "1000";
+    frac1 <= '1' & SW(1) & SW(0) & "10101";
+
+    sign2 <= SW(9);
+    exp2  <= "10" & KEY(1) & KEY(0);
+    frac2 <= '1' & SW(8 downto 2);
+
+    fp_add_unit: fp_adder port map (
+        sign1 => sign1, sign2 => sign2,
+        exp1 => exp1, exp2 => exp2,
+        frac1 => frac1, frac2 => frac2,
+        sign_out => sign_out, exp_out => exp_out, frac_out => frac_out
+    );
+
+    hex0_unit: hex_to_sseg port map (hex => frac_out(3 downto 0), sseg => HEX0);
+    hex1_unit: hex_to_sseg port map (hex => frac_out(7 downto 4), sseg => HEX1);
+    hex2_unit: hex_to_sseg port map (hex => exp_out,               sseg => HEX2);
+
+    LEDR(9) <= sign_out;
+    LEDR(8 downto 0) <= (others => '0');
+
+end arch;
+</code></pre>
+
+<div class="box porque">
+<span class="box-titulo">Por que criamos um arquivo "top level" separado</span>
+Assim o <code>fp_adder.vhd</code> original (o cérebro matemático) fica <strong>intocado</strong> — você só o reutiliza (component instantiation), sem editar sua lógica interna. Isso deixa claro, para quem for corrigir, que a "matemática" validada na Etapa 1 é exatamente a mesma sendo usada na placa física, só embrulhada em uma camada nova de conexões físicas.
+</div>
+
+<h3>4.6 — Refazer a simulação da versão adaptada</h3>
+<div class="box acao">
+Repita o processo da seção 3.3, mas agora compilando os 3 arquivos (fp_adder, hex_to_sseg, fp_adder_de10lite) e um novo testbench que aplica valores em <code>SW</code> e <code>KEY</code> em vez de <code>sign1/exp1/frac1</code> diretamente — isso comprova que o mapeamento de pinos da seção 4.2 não quebrou a lógica matemática (é literalmente o item 2 da "Ação" da Etapa 2 do enunciado).
+<pre><code>ghdl -a --std=08 rtl_original/fp_adder.vhd
+ghdl -a --std=08 rtl_de10lite/hex_to_sseg.vhd
+ghdl -a --std=08 rtl_de10lite/fp_adder_de10lite.vhd
+ghdl -a --std=08 sim/fp_adder_de10lite_tb.vhd
+ghdl -e --std=08 fp_adder_de10lite_tb
+ghdl -r --std=08 fp_adder_de10lite_tb --wave=sim/onda_de10lite.ghw
+gtkwave sim/onda_de10lite.ghw</code></pre>
+</div>
+
+<h2 id="parte5">Parte 5 — Etapa 3: Síntese física no Quartus e gravação na placa</h2>
+
+<div class="box teoria">
+<span class="box-titulo">O que muda aqui</span>
+Até agora tudo era simulação (nenhum hardware real envolvido). A partir de agora você vai gerar o arquivo que a FPGA de fato entende (síntese) e gravá-lo fisicamente na placa via cabo USB.
+</div>
+
+<h3>5.1 — Criar o projeto no Quartus</h3>
+<div class="box acao">
+<span class="tag tag-abrir">ABRIR</span> o Quartus Prime.<br>
+1. Menu <strong>File → New Project Wizard</strong>.<br>
+2. Clique <strong>Next</strong>. Em "Directory", escolha (ou crie) uma pasta, ex: <span class="inline-code">~/somador-pf/quartus</span>. Em "Name", digite <span class="inline-code">fp_adder_de10lite</span>. Clique <strong>Next</strong>.<br>
+3. Em "Project Type", deixe <strong>"Empty Project"</strong> selecionado. Clique <strong>Next</strong>.<br>
+4. Em "Add Files", clique no botão <strong>"..."</strong> e adicione, um por um: <span class="inline-code">fp_adder.vhd</span>, <span class="inline-code">hex_to_sseg.vhd</span>, <span class="inline-code">fp_adder_de10lite.vhd</span> (das pastas rtl_original e rtl_de10lite). Clique <strong>Next</strong>.<br>
+5. Em "Family, Device & Board Settings": no campo <strong>Family</strong>, selecione <strong>"MAX 10 (DA/DF/DC/DE/DT/SA/SC/SE/ST)"</strong>. No campo de busca de "Name filter" digite <span class="inline-code">10M50DA</span> e selecione o dispositivo <strong>10M50DAF484C7G</strong> (esse é o chip exato da placa DE10-Lite). Clique <strong>Next</strong>, depois <strong>Finish</strong>.
+</div>
+
+<div class="box atencao">
+<span class="box-titulo">Confirme o part number</span>
+O part number <code>10M50DAF484C7G</code> é o padrão da DE10-Lite segundo a documentação da Terasic. Ainda assim, confira o adesivo/etiqueta física no próprio chip da sua placa (ou o manual da DE10-Lite) para ter certeza de que bate — usar o dispositivo errado impede a gravação.
+</div>
+
+<h3>5.2 — Definir a entidade top-level</h3>
+<div class="box acao">
+No painel esquerdo ("Project Navigator"), aba "Files": clique com botão direito em <span class="inline-code">fp_adder_de10lite.vhd</span> → <strong>"Set as Top-Level Entity"</strong>.
+</div>
+
+<div class="box porque">
+<span class="box-titulo">Por que isso é necessário</span>
+Um projeto pode ter vários arquivos VHDL, mas o Quartus precisa saber qual deles representa "a placa inteira" — ou seja, qual entidade tem as portas que realmente vão virar pinos físicos. É a <code>fp_adder_de10lite</code>, não a <code>fp_adder</code> (que é só um componente interno).
+</div>
+
+<h3>5.3 — Atribuir os pinos (Pin Planner)</h3>
+<div class="box acao">
+1. Menu <strong>Assignments → Pin Planner</strong>.<br>
+2. Na tabela que abre, cada linha é um dos sinais da sua entidade top-level (SW[0]...SW[9], KEY[0], KEY[1], LEDR[0]...LEDR[9], HEX0[0]...HEX2[6]).<br>
+3. Na coluna <strong>"Location"</strong> de cada linha, digite o nome do pino conforme a tabela da seção 4.1 (ex: para <code>SW[0]</code> digite <span class="inline-code">PIN_C10</span>) e aperte Enter.<br>
+4. Repita para todos os sinais. Para HEX1 e HEX2, procure a tabela completa no manual da DE10-Lite (mesma lógica de HEX0, seção 4.1) — o Quartus só vai deixar você compilar se <em>todos</em> os pinos usados estiverem atribuídos.<br>
+5. Feche o Pin Planner (ele salva automaticamente).
+</div>
+
+<div class="box resultado">
+<span class="box-titulo">Como conferir se ficou certo</span>
+Volte para a janela principal e abra <strong>Assignments → Pin Planner</strong> de novo — todas as linhas usadas devem ter uma "Location" preenchida, sem nenhuma em branco.
+</div>
+
+<h3>5.4 — Compilar</h3>
+<div class="box acao">
+Menu <strong>Processing → Start Compilation</strong> (ou o ícone de "play" azul na barra de ferramentas). Isso pode demorar de 1 a 5 minutos.
+</div>
+
+<div class="box resultado">
+<span class="box-titulo">O que esperar</span>
+No final aparece uma janela "Compilation was successful", com um resumo mostrando quantos elementos lógicos (Logic Elements) foram usados. Alguns "Warnings" (avisos amarelos) são normais e não impedem a gravação; "Errors" (vermelhos) impedem — leia a mensagem, ela geralmente aponta o arquivo e a linha exata do problema.
+</div>
+
+<h3>5.5 — Gravar na placa</h3>
+<div class="box acao">
+1. Conecte a placa DE10-Lite ao computador via cabo USB (o cabo USB Blaster, geralmente USB Mini-B).<br>
+2. Ligue a placa (chave de energia na lateral).<br>
+3. No Quartus, menu <strong>Tools → Programmer</strong>.<br>
+4. Clique em <strong>"Hardware Setup..."</strong>, selecione <strong>"USB-Blaster"</strong> na lista, feche.<br>
+5. Clique em <strong>"Auto Detect"</strong> se a lista de dispositivos estiver vazia — deve aparecer o chip <code>10M50DA</code>.<br>
+6. Marque a caixinha <strong>"Program/Configure"</strong> ao lado do arquivo <span class="inline-code">.sof</span> listado.<br>
+7. Clique em <strong>"Start"</strong>.
+</div>
+
+<div class="box resultado">
+<span class="box-titulo">Como saber que gravou</span>
+A barra de progresso chega a 100% e aparece "Configuration Succeeded" (ou similar). A partir daí, mexer nas chaves SW e nos botões KEY da placa física já deve mudar os displays HEX na hora — sem precisar do computador.
+</div>
+
+<h3>5.6 — Testar os casos críticos na placa</h3>
+<div class="box acao">
+Reproduza fisicamente, com as chaves e botões, os 3 casos da tabela da seção 3.2 (adaptando os valores de <code>frac2</code>/<code>sign2</code>/<code>exp2</code> para os bits de SW/KEY conforme o mapeamento da seção 4.2) e confira se o HEX0/HEX1/HEX2 mostram os valores esperados de <code>frac_out</code>/<code>exp_out</code>, e se o LEDR(9) acende corretamente para os casos negativos.
+</div>
+
+<div class="box atencao">
+<span class="box-titulo">Erros comuns nesta etapa</span>
+<ul>
+<li><strong>"Can't Access JTAG chain":</strong> cabo USB mal conectado ou placa desligada — confira o cabo e a chave de energia.</li>
+<li><strong>Displays mostram tudo apagado/tudo aceso:</strong> problema de polaridade do hex_to_sseg (veja o aviso da seção 4.4).</li>
+<li><strong>Erro "pin location conflicts" ao compilar:</strong> dois sinais diferentes com o mesmo "Location" no Pin Planner — revise a tabela, cada pino só pode aparecer uma vez.</li>
+</ul>
+</div>
+
+<h2 id="parte6">Parte 6 — Etapa 4: Documentação no GitHub</h2>
+
+<div class="box acao">
+<span class="box-titulo">Passo a passo</span>
+1. Acesse <span class="inline-code">github.com</span>, clique no <strong>"+"</strong> no canto superior direito → <strong>"New repository"</strong>.<br>
+2. Dê um nome (ex: <span class="inline-code">somadorpf-vhdl-grupoX</span>), marque <strong>"Private"</strong>, clique <strong>"Create repository"</strong>.<br>
+3. Abra o link do template fornecido pela professora: <span class="inline-code">https://raw.githubusercontent.com/victorialejandra/template-somadorpf-vhdl/refs/heads/main/README.md</span> — copie o conteúdo.<br>
+4. No seu repositório novo, clique em <strong>"Add file" → "Create new file"</strong>, nomeie <span class="inline-code">README.md</span>, cole o template e preencha cada seção com o que vocês fizeram nas Etapas 1 a 3 (incluam prints do GTKWave e da placa funcionando).<br>
+5. Registrem, em uma seção própria, <strong>qual(is) IA(s) usaram, quais prompts, e um comentário sobre o quanto ajudou</strong> — esse tutorial em si pode ser citado como parte dessa documentação.<br>
+6. Preencham a <strong>Taxonomia CRediT</strong> (<span class="inline-code">https://credit.niso.org/</span>) indicando o que cada um dos 3 integrantes fez.<br>
+7. Façam upload de todos os arquivos <span class="inline-code">.vhd</span> das pastas <code>rtl_original</code> e <code>rtl_de10lite</code>, e do print/arquivo de simulação, para o repositório (arraste os arquivos na página do GitHub ou use <span class="inline-code">git add / git commit / git push</span> pelo terminal).<br>
+8. Copiem o link do repositório e enviem no Moodle, conforme pedido no enunciado.
+</div>
+
+<div class="box acao">
+<span class="box-titulo">Enviar pelo terminal (alternativa ao upload pelo site)</span>
+<pre><code>cd ~/somador-pf
+git init
+git add .
+git commit -m "Projeto somador de ponto flutuante - MCTA024"
+git branch -M main
+git remote add origin https://github.com/SEU-USUARIO/somadorpf-vhdl-grupoX.git
+git push -u origin main</code></pre>
+</div>
+
+<h2 id="checklist">Checklist final</h2>
+<div class="checklist">
+<ul>
+<li>☐ GHDL e GTKWave instalados e testados (<code>ghdl --version</code> funciona)</li>
+<li>☐ <code>fp_adder.vhd</code> original compilado e simulado sem erros</li>
+<li>☐ Testbench com pelo menos os 3 casos (carry-out, deslocamento, underflow) validado no GTKWave</li>
+<li>☐ Mapeamento de pinos SW/KEY/HEX/LEDR documentado e justificado</li>
+<li>☐ <code>hex_to_sseg.vhd</code> e <code>fp_adder_de10lite.vhd</code> criados e simulados</li>
+<li>☐ Projeto criado no Quartus com o dispositivo <code>10M50DAF484C7G</code></li>
+<li>☐ Pinos atribuídos no Pin Planner, sem conflitos</li>
+<li>☐ Compilação concluída sem erros</li>
+<li>☐ Placa gravada e testada fisicamente com os 3 casos críticos</li>
+<li>☐ Repositório GitHub privado criado com o README preenchido</li>
+<li>☐ Uso de IA documentado explicitamente (com prompts)</li>
+<li>☐ Taxonomia CRediT preenchida para os 3 integrantes</li>
+<li>☐ Link enviado no Moodle</li>
+</ul>
+</div>
+
+<footer>Tutorial gerado para apoio de estudo — MCTA024, UFABC. Confira sempre o material oficial do Moodle e o manual da DE10-Lite antes da entrega final.</footer>
+
+</body>
+</html>
