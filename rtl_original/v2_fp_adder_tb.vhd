@@ -10,6 +10,16 @@
 -- exp_out; os valores esperados foram conferidos independentemente com um
 -- modelo golden em Python (ver v2_golden_model.py, 4 PASS / 0 FAIL).
 --
+-- O CASO D usa exatamente os valores das chaves demonstrados no video da
+-- placa fisica enviado pelo grupo (WhatsApp Video 2026-08-09), reproduzido
+-- aqui como caso de teste em simulacao para o mesmo cenario ja validado
+-- fisicamente: opf1 (fixo) = "1111"/"10011111" (SW1=SW0='0'), opf2 com
+-- sign2=SW(9)='1', exp2="11"&KEY(1)&KEY(0)="1111" (botoes soltos = '1'),
+-- frac2='1'&SW(8 downto 2)="11111111" (todas as chaves em '1'). Resultado
+-- esperado: sign_out='1', exp_out=14 ("01110"), frac_out=0xC0
+-- ("11000000"), ou seja (-1)^1 x (0,5+0,25) x 2^14 = -12288 -- exatamente
+-- o valor mostrado no video.
+--
 -- Ao rodar com GHDL, cada caso imprime PASS/FAIL automaticamente via
 -- "report", servindo como evidencia objetiva de validacao para o
 -- relatorio (sem depender apenas de leitura visual das formas de onda).
@@ -114,12 +124,17 @@ begin
                " (zero 'assinado'; nao afeta o valor numerico, mas documentar no relatorio)"
                severity note;
 
-        -- CASO D: soma direta, ja normalizada (leado=0), sem deslocamento
-        -- e sem carry-out.
-        sign1 <= '0'; exp1 <= "1111"; frac1 <= "10000000";
-        sign2 <= '0'; exp2 <= "1110"; frac2 <= "10000000";
+        -- CASO D: reproduz EXATAMENTE o caso demonstrado no video da placa
+        -- fisica (WhatsApp Video 2026-08-09): opf1 fixo com SW1=SW0='0'
+        -- (frac1="10011111"), opf2 com sign2=SW(9)='1', exp2="1111"
+        -- (KEY1=KEY0 soltos='1'), frac2="11111111" (SW8..SW2 todos '1').
+        -- Testa subtracao com deslocamento de 1 bit (leado=1) e resultado
+        -- negativo: (-1)^1 x (0,5+0,25) x 2^14 = -12288, valor que o
+        -- proprio video calcula e confirma a partir do HEX/LEDR da placa.
+        sign1 <= '0'; exp1 <= "1111"; frac1 <= "10011111";
+        sign2 <= '1'; exp2 <= "1111"; frac2 <= "11111111";
         wait for 20 ns;
-        check("CASO D (leado=0, sem deslocamento)", exp_out, frac_out, "01111", "11000000", n_pass, n_fail);
+        check("CASO D (video na placa fisica, -12288)", exp_out, frac_out, "01110", "11000000", n_pass, n_fail);
 
         -- Resumo final
         wait for 5 ns;
