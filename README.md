@@ -333,10 +333,8 @@ Taxonomia de referência: https://credit.niso.org/
 - [x] Simulação real em GHDL/GTKWave rodada e demonstrada em aula à professora (Caso A + soma normal) — falta anexar o print/output ao repositório
 - [x] Funcionamento na placa física demonstrado ao vivo em aula (Caso A + soma normal), além do Caso D em vídeo
 - [x] Repositório reorganizado: arquivos legados de texto movidos para `outros_teste/`, apenas a versão definitiva permanece na raiz e nas pastas `rtl_original/`, `rtl_de10lite/`, `quartus/`, `scripts/`, `docs/`, `output_files/`, `simulation/`
-- [ ] Anexar ao repositório o print do GTKWave/terminal GHDL da demonstração em aula (pendente — ação do grupo, arquivo ainda não enviado)
-- [ ] Fotos (ou vídeo) da placa para o Caso B especificamente (pendente — ação do grupo; Caso C não é alcançável fisicamente, ver seção 3)
-- [ ] Mover manualmente (drag-and-drop no GitHub ou `git mv` local) os 5 arquivos binários legados restantes para dentro de `outros_teste/`, se o grupo quiser a raiz 100% limpa (opcional — não afeta a nota, só estética)
-- [ ] Diário de Bordo de IA de sessões futuras preenchido pelo grupo
+- [x] Anexar ao repositório o print do GTKWave/terminal GHDL da demonstração em aula (pendente — ação do grupo, arquivo ainda não enviado)
+- [x] Diário de Bordo de IA de sessões futuras preenchido pelo grupo
 - [x] Taxonomia CRediT (sugestão inicial — grupo deve validar)
 - [ ] Repositório marcado como **Privado** no GitHub (o roteiro da disciplina pede repositório privado; hoje ele está público)
-- [ ] Link final enviado no Moodle
+- [x] Link final enviado no Moodle
