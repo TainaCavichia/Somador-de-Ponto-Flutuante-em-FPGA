@@ -120,20 +120,20 @@ flowchart TB
 | Sinal top-level | Pino(s) FPGA |
 |---|---|
 | CLOCK_50 | PIN_P11 |
-| KEY[0] | PIN_B8 |
-| KEY[1] | PIN_A7 |
-| SW[0] | PIN_C10 |
-| SW[1] | PIN_C11 |
-| SW[2] | PIN_D12 |
-| SW[3] | PIN_C12 |
-| SW[4] | PIN_A12 |
-| SW[5] | PIN_B12 |
-| SW[6] | PIN_A13 |
-| SW[7] | PIN_A14 |
-| SW[8] | PIN_B14 |
-| SW[9] | PIN_F15 |
-| LEDR[0] | PIN_A8 |
-| LEDR[9] | PIN_B11 |
+| KEY0 | PIN_B8 |
+| KEY1 | PIN_A7 |
+| SW0 | PIN_C10 |
+| SW1 | PIN_C11 |
+| SW2 | PIN_D12 |
+| SW3 | PIN_C12 |
+| SW4 | PIN_A12 |
+| SW5 | PIN_B12 |
+| SW6 | PIN_A13 |
+| SW7 | PIN_A14 |
+| SW8 | PIN_B14 |
+| SW9 | PIN_F15 |
+| LEDR0 | PIN_A8 |
+| LEDR9 | PIN_B11 |
 | HEX0[0..6] | PIN_C14, PIN_E15, PIN_C15, PIN_C16, PIN_E16, PIN_D17, PIN_C17 |
 | HEX1[0..6] | PIN_C18, PIN_D18, PIN_E18, PIN_B16, PIN_A17, PIN_A18, PIN_B17 |
 | HEX2[0..6] | PIN_B20, PIN_A20, PIN_B19, PIN_A21, PIN_B21, PIN_C22, PIN_B22 |
@@ -201,7 +201,7 @@ O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (
 
 ### 5.1 Sessão registrada nesta revisão (Claude, via Cowork)
 
-**Ferramenta:** Claude (Anthropic
+**Ferramenta:** Claude (Anthropic)
 
 
 **Contribuições:** Utilizamos o Claude para auxiliar no diagnóstico de erros de síntese, na geração de casos de teste (físicos e em simulação) e na criação de um testbench VHDL para observar o 4º estágio (normalização) do somador de ponto flutuante. Abaixo está a análise crítica do uso da ferramenta.
@@ -234,5 +234,3 @@ Distribuição usando a Taxonomia CRediT:
 Taxonomia de referência: https://credit.niso.org/
 
 ```
-
-> **`versao-registrada/` (com hífen, na raiz) ainda existe** e contém só `Dossie_Somador_PF_DE10Lite.pdf` — o único arquivo binário dessa pasta, deixado no lugar por segurança (ver nota de reorganização no topo do README). Os demais arquivos de texto dessa pasta já foram movidos para `outros_teste/versao_registrada/` (com underscore). Se o grupo mover manualmente o PDF para dentro de `outros_teste/versao_registrada/`, a pasta `versao-registrada/` antiga pode ser removida por completo.
