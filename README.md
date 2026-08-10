@@ -141,8 +141,6 @@ flowchart TB
 
 Dispositivo: **10M50DAF484C7G** (família MAX 10), família selecionada no Quartus Prime 24.1std.
 
-**Foram feitos 4 testes diferentes de operações na placa física, anexados nos arquivos `Teste1_FPGA.png`, `Teste2_FPGA.png`, `Teste3_FPGA.png` e `Teste4_FPGA.png`, o repositório, com as fotos dos testes feitos em sala pelo grupo**
-
 ## 4. Evidências de Validação
 
 ### 4.1 Simulação — os 4 casos exigidos
@@ -196,6 +194,8 @@ Total pins : 50 / 360 (14%)
 ```
 
 O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (permanece na raiz do repositório como evidência histórica da primeira compilação bem-sucedida).
+
+**Foram feitos 4 testes diferentes de operações na placa física, anexados nos arquivos `Teste1_FPGA.png`, `Teste2_FPGA.png`, `Teste3_FPGA.png` e `Teste4_FPGA.png`, o repositório, com as fotos dos testes feitos em sala pelo grupo**
 
 ## 5. Diário de Bordo de IA
 
