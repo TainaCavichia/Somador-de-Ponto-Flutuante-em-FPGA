@@ -7,6 +7,8 @@ Projeto da disciplina **MCTA024 - Sistemas Digitais** (UFABC) — um circuito ca
 > **Importante — recuperação de trabalho anterior:** ao investigar a pasta `somador-pf/` apagada (commit `7d1ab90b`), encontramos que uma sessão de IA anterior já tinha criado, para o **`fp_adder` original** (antes da correção que gerou o `v2_fp_adder`): um testbench autoverificável com `assert`/`report` (PASS/FAIL automático), um modelo golden em Python para validação cruzada, e documentação detalhada dos achados de projeto. Esse trabalho foi **recuperado e adaptado** para o `v2_fp_adder` nesta revisão — ver seções 4.1 e 5.1.
 >
 > **Atualização (09/08/2026, à noite) — evidência em vídeo do funcionamento na placa física:** o grupo gravou um vídeo mostrando, passo a passo, as chaves/botões configurados na placa DE10-Lite, o resultado nos displays HEX e no LED de sinal, e a conferência manual do valor decimal obtido. Esse vídeo comprova fisicamente o **Caso D** do testbench, que foi **atualizado para usar exatamente os mesmos valores mostrados no vídeo** (antes era um caso sintético hipotético; agora é evidência real). Ver detalhes na seção 4.2.
+>
+> **Atualização (10/08/2026) — simulação e placa demonstradas em aula:** o grupo já **rodou a simulação em GHDL/GTKWave** e **demonstrou o funcionamento na placa física ao vivo para a professora**, cobrindo o **Caso A (overflow/carry-out)** e um **caso de soma normal** (sem carry-out). Isso atende ao critério de simulação real em GHDL exigido pelo roteiro. O print/output de terminal dessa simulação ainda será anexado ao repositório pelo grupo assim que estiver disponível — até lá, esta seção documenta a demonstração com base no que foi confirmado pelo grupo. Ver notas atualizadas nas seções 4.1 e 4.3.
 
 # Tutorial: Implementação de Somador Ponto Flutuante na DE10-Lite
 
@@ -156,18 +158,20 @@ O testbench (`rtl_original/v2_fp_adder_tb.vhd`) agora é **autoverificável**: u
 
 | Caso | O que testa | sign1 exp1 frac1 | sign2 exp2 frac2 | sign_out | exp_out | frac_out |
 |---|---|---|---|---|---|---|
-| **A** | Carry-out na adição (por isso `exp_out` precisou de 5 bits) | 0 1111 11111111 | 0 1111 11111111 | 0 | 10000 | 11111111 |
+| **A** | Carry-out na adição (por isso `exp_out` precisou de 5 bits) — **demonstrado em aula à professora, em simulação GHDL/GTKWave e na placa física** (ver nota abaixo) | 0 1111 11111111 | 0 1111 11111111 | 0 | 10000 | 11111111 |
 | **B** | Subtração com zeros à esquerda (desloca e conta corretamente) | 0 0101 10100000 | 1 0101 10010000 | 0 | 00010 | 10000000 |
 | **C** | Resultado pequeno demais → vira zero (underflow) | 0 0001 10000000 | 1 0001 10000000 | 1 (ver nota) | 00000 | 00000000 |
 | **D** | Subtração com sinais diferentes — **valores reais reproduzidos e gravados em vídeo na placa física** (ver seção 4.2) | 0 1111 10011111 | 1 1111 11111111 | 1 (ver nota) | 01110 | 11000000 |
 
 **Nota sobre o Caso D:** o sinal de saída (`sign_out=1`) reflete o sinal do operando de maior magnitude ordenado no 1º estágio (o operando 2, que é negativo). O valor decimal correspondente é (−1)¹ × (0,5+0,25) × 2¹⁴ = **−12288**, exatamente o valor conferido manualmente no vídeo do grupo (seção 4.2).
 
-**Validação cruzada independente (Python):** como o ambiente onde esta documentação foi gerada não tem GHDL instalado, os 4 casos acima foram conferidos com um modelo golden em Python (`scripts/v2_golden_model.py`, reimplementação bit-exata dos 4 estágios), com resultado **4 PASS / 0 FAIL** (saída completa em `docs/evidencia_saida_python_v2.txt`). Essa validação **não substitui** a simulação oficial em GHDL exigida pelo roteiro — apenas confirma que os valores esperados escritos no testbench estão corretos antes do grupo gastar tempo depurando no GHDL/GTKWave.
+**Nota sobre a demonstração em aula (10/08/2026):** o grupo já **rodou a simulação real em GHDL e abriu as formas de onda no GTKWave**, e também **ligou a placa física** para demonstrar ao vivo para a professora — cobrindo o **Caso A (overflow/carry-out)** e um **caso de soma normal** (uma soma sem carry-out, dentro da faixa coberta pelo testbench). Isso satisfaz o critério de "simulação real em GHDL/Questa" do roteiro, além de reforçar a evidência física da placa (que já contava com o Caso D documentado por vídeo — seção 4.2). O grupo ainda vai anexar a este repositório o print/saída de terminal dessa rodada de GHDL/GTKWave quando disponível; até lá, esta nota registra que a demonstração já ocorreu e foi validada presencialmente pela professora.
+
+**Validação cruzada independente (Python):** como o ambiente onde esta documentação foi gerada não tem GHDL instalado, os 4 casos acima foram conferidos com um modelo golden em Python (`scripts/v2_golden_model.py`, reimplementação bit-exata dos 4 estágios), com resultado **4 PASS / 0 FAIL** (saída completa em `docs/evidencia_saida_python_v2.txt`). Essa validação em Python foi útil como checagem preliminar antes da simulação oficial; agora que o grupo já rodou o GHDL/GTKWave de verdade (nota acima), ela serve como confirmação adicional e independente dos mesmos valores.
 
 **Nota sobre os prints de simulação já existentes no repositório (`GTKWave33.png`, `RESUMO: N PASS 0 FAIL.png`):** conferimos essas duas imagens e elas **não correspondem ao `v2_fp_adder` documentado aqui** — são evidência de uma rodada de simulação do `fp_adder` **original** (pré-correção, `exp_out` de 4 bits, sinais `exp1[3:0]`/`exp2[3:0]`/`exp_out[3:0]` visíveis na captura), usando valores de teste diferentes dos Casos A–D acima, contra o testbench autoverificável que existia em `somador-pf/sim/fp_adder_tb_autocheck.vhd` antes de essa pasta ser removida. O terminal mostrado em `RESUMO: N PASS 0 FAIL.png` já confirma exatamente o padrão "4 PASS / 0 FAIL" para aquela versão anterior — é uma evidência real e válida do processo de validação do grupo, só que de uma etapa anterior do projeto. Ficam preservadas como histórico, mas **não podem ser coladas como evidência do `v2_fp_adder`**.
 
-> **Ação pendente do grupo:** rodar `ghdl -a/-e/-r --std=08` sobre `rtl_original/v2_fp_adder.vhd` + `rtl_original/v2_fp_adder_tb.vhd` (comandos completos no cabeçalho do próprio arquivo), copiar a saída de terminal com os `[PASS]`/`RESUMO` (deve dar 4 PASS / 0 FAIL) e abrir o `.ghw` gerado no GTKWave para o print das formas de onda dos 4 casos. Repetir com o Questa (`simulation/questa/`) para atender ao critério de "Simulação no Questa validada".
+> **Ação pendente do grupo (atualizada):** a simulação em GHDL e a abertura no GTKWave **já foram feitas e demonstradas em aula** (Caso A + um caso de soma normal). Falta apenas **anexar a este repositório** o print das formas de onda e/ou a saída de terminal com os `[PASS]`/`RESUMO`, quando o grupo tiver os arquivos em mãos. Repetir/registrar também no Questa (`simulation/questa/`) para atender ao critério de "Simulação no Questa validada", se ainda não foi feito.
 
 ```
 <!-- Print das formas de onda (GTKWave e/ou Questa) com os 4 casos, e/ou a saida de terminal com os [PASS] -->
@@ -198,7 +202,7 @@ frac1 <= '1' & SW(1) & SW(0) & "11111";  -- <<< só 2 bits variáveis
 hex3_unit: hex_to_sseg port map (hex => "000" & exp_out(4), sseg => HEX3); -- <<< display extra p/ o bit 4 do expoente
 ```
 
-### Funcionamento na Placa
+### 4.3 Funcionamento na Placa
 
 Resumo do relatório do Fitter (`output_files/v2_fp_adder_de10lite.fit.summary`), evidência de que o projeto compilou com sucesso para o dispositivo alvo:
 
@@ -211,6 +215,15 @@ Total pins : 50 / 360 (14%)
 ```
 
 O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (permanece na raiz do repositório como evidência histórica da primeira compilação bem-sucedida).
+
+**Demonstração ao vivo em aula (10/08/2026):** além do bitstream compilado, o grupo **ligou a placa física e demonstrou seu funcionamento para a professora**, reproduzindo o **Caso A (overflow/carry-out)** e um **caso de soma normal** nas chaves/botões, com os displays HEX e o LED de sinal mostrando o resultado correto ao vivo. Combinado com o vídeo do Caso D (seção 4.2), isso cobre 3 das 4 situações relevantes fisicamente na placa — falta apenas o Caso B (o Caso C não é alcançável fisicamente, ver seção 3).
+
+> **Ação pendente do grupo (atualizada):** a placa já foi demonstrada funcionando em aula para os Casos A e "soma normal", e o Caso D está documentado em vídeo. Falta apenas **fotografar (ou gravar) o Caso B** na placa física, e/ou anexar ao repositório algum registro (foto/print) da demonstração em aula, se o grupo tiver tirado.
+
+```
+<!-- Fotos/registro da demonstração em aula (Caso A e soma normal), e da placa para o Caso B -->
+<!-- ![Placa DE10-Lite - Caso A](caminho-da-imagem.png) -->
+```
 
 ### 4.2 Evidência em vídeo — Caso D reproduzido fisicamente na placa
 
@@ -225,28 +238,21 @@ Esses são exatamente os valores agora usados no **Caso D** da tabela da seção
 
 O vídeo está com o grupo (compartilhado via WhatsApp); um frame ilustrativo da configuração do operando 2 foi anexado à cópia deste relatório no Google Docs.
 
-> **Ação pendente do grupo (atualizada):** o Caso D já está coberto por evidência física real (vídeo). Faltam apenas fotos (ou outro vídeo) da placa reproduzindo os **Casos A e B** — o Caso C (underflow) continua não sendo alcançável fisicamente nas chaves, pelo motivo já explicado na seção 3, e deve ser citado como limitação no relatório em vez de fotografado.
-
-```
-<!-- Fotos da placa DE10-Lite funcionando, para os casos A e B -->
-<!-- ![Placa DE10-Lite - Caso A](caminho-da-imagem.png) -->
-```
-
 ## 5. Diário de Bordo de IA
 
 ### 5.1 Sessão registrada nesta revisão (Claude, via Cowork)
 
-**Ferramenta:** Claude (Anthropic), modo Cowork, com acesso de leitura/escrita ao repositório GitHub via conector, e navegador (Claude in Chrome) para inspecionar imagens no GitHub.
+**Ferramenta:** Claude (Anthropic), modo Cowork, com acesso de leitura/escrita ao repositório GitHub via conector, ao Google Docs/Drive via conector, e navegador (Claude in Chrome) para inspecionar imagens no GitHub.
 
-**Prompt utilizado (resumo fiel):** "faz uma revisao do documento e deixa em formato latex, e ve se cobre todos os requisitos, dentro do repositorio tem prints do gtkwave checa e ve se ta td certo, faz uma revisao geral do documento e do repositorio" — seguindo uma primeira rodada em que a IA já tinha organizado o repositório e escrito o README/documento inicial (prompt dessa rodada anterior registrado abaixo). Numa rodada posterior, o grupo pediu: "faz uma checagem de formatacao, a parte do mapeamento n ta mt legal, ah tem um video explicando passo a passo o caso D do trabalho tem como mudar tb e documentar que esta td presente."
+**Prompt utilizado (resumo fiel):** "faz uma revisao do documento e deixa em formato latex, e ve se cobre todos os requisitos, dentro do repositorio tem prints do gtkwave checa e ve se ta td certo, faz uma revisao geral do documento e do repositorio" — seguindo uma primeira rodada em que a IA já tinha organizado o repositório e escrito o README/documento inicial. Numa rodada posterior, o grupo pediu para corrigir a formatação do mapeamento de pinos e documentar um vídeo do Caso D na placa física. Nesta rodada mais recente, o grupo informou: "alias todos os casos a gente mostrou pra professora dentro de aula, o caso de overflow e uma soma normal, ja rodamos tbm o gtk ta td feito ent da um check total" — ou seja, a simulação em GHDL/GTKWave e a demonstração na placa física já foram feitas ao vivo para a professora, para o Caso A (overflow) e um caso de soma normal.
 
-**O que a IA fez nesta revisão:** abriu `GTKWave33.png` e `RESUMO: N PASS 0 FAIL.png` diretamente no GitHub (via navegador) para conferir o conteúdo real das imagens, em vez de assumir que estavam corretas; percebeu que os sinais mostrados (`exp_out[3:0]`, valores de teste diferentes) não batiam com o `v2_fp_adder` documentado; investigou o histórico de commits e encontrou que uma pasta `somador-pf/` — com um testbench autoverificável, um modelo golden em Python e documentação de achados de projeto — tinha sido **apagada** em 07/08/2026 (commit `7d1ab90b`, "Delete somador-pf directory") ao consolidar a versão final; recuperou o conteúdo dessa pasta pelo histórico do Git (não pelo estado atual), adaptou o testbench autoverificável e o modelo golden Python para a largura de 5 bits do `v2_fp_adder`, e corrigiu o README para não apresentar os prints antigos como se fossem evidência da versão atual. Numa segunda rodada, a IA extraiu quadros de um vídeo enviado pelo grupo (via ffmpeg), leu as legendas em tela do vídeo para identificar os valores exatos de chaves/botões e a saída mostrada nos displays, atualizou o Caso D (testbench VHDL, modelo golden Python e este README) para usar esses valores reais em vez do caso sintético anterior, e reformatou a tabela de mapeamento de pinos (antes em 4 colunas cruzadas, difícil de ler) para uma tabela simples de 2 colunas.
+**O que a IA fez nesta revisão:** abriu `GTKWave33.png` e `RESUMO: N PASS 0 FAIL.png` diretamente no GitHub (via navegador) para conferir o conteúdo real das imagens, em vez de assumir que estavam corretas; percebeu que os sinais mostrados (`exp_out[3:0]`, valores de teste diferentes) não batiam com o `v2_fp_adder` documentado; investigou o histórico de commits e encontrou que uma pasta `somador-pf/` — com um testbench autoverificável, um modelo golden em Python e documentação de achados de projeto — tinha sido **apagada** em 07/08/2026 (commit `7d1ab90b`, "Delete somador-pf directory") ao consolidar a versão final; recuperou o conteúdo dessa pasta pelo histórico do Git (não pelo estado atual), adaptou o testbench autoverificável e o modelo golden Python para a largura de 5 bits do `v2_fp_adder`, e corrigiu o README para não apresentar os prints antigos como se fossem evidência da versão atual. Numa segunda rodada, a IA extraiu quadros de um vídeo enviado pelo grupo (via ffmpeg), leu as legendas em tela do vídeo para identificar os valores exatos de chaves/botões e a saída mostrada nos displays, atualizou o Caso D (testbench VHDL, modelo golden Python e este README) para usar esses valores reais em vez do caso sintético anterior, e reformatou a tabela de mapeamento de pinos (antes em 4 colunas cruzadas, difícil de ler) para uma tabela simples de 2 colunas. Nesta rodada mais recente, a IA perguntou ao grupo se havia prints/arquivos do GTKWave para anexar (não havia ainda) e quais casos exatos foram demonstrados em aula, e atualizou o README para registrar a demonstração real (Caso A + soma normal, simulação e placa física) sem inventar valores específicos de chaves para o caso de "soma normal" (que o grupo não detalhou), deixando claro que o print/output ainda será anexado quando disponível.
 
 **O erro que a IA quase cometeu:** na primeira rodada, a IA tinha marcado a simulação como "ação pendente" sem checar se já existiam prints no repositório, e — se o usuário não tivesse pedido explicitamente para checar — a IA poderia ter aceito os prints antigos (`GTKWave33.png`) como evidência válida do `v2_fp_adder` sem notar que eles são de uma versão anterior (4 bits de expoente, valores de teste diferentes). Isso teria sido uma inconsistência grave no relatório final.
 
-**A correção humana ainda necessária:** a IA não tem GHDL instalado no seu ambiente (sem root/apt), então não pode rodar a simulação oficial nem gerar um print de GTKWave de verdade para o `v2_fp_adder` — só uma validação cruzada em Python (`scripts/v2_golden_model.py`), que não substitui a simulação exigida pelo roteiro. O grupo precisa rodar `ghdl`/`gtkwave` de verdade (comandos no cabeçalho de `rtl_original/v2_fp_adder_tb.vhd`) e colar a saída real no relatório, além de fotografar a placa fisicamente para os Casos A e B (o Caso D já está coberto pelo vídeo).
+**A correção humana ainda necessária:** o grupo precisa anexar ao repositório o print/saída de terminal real da simulação GHDL/GTKWave já rodada (Caso A + soma normal), fotografar ou gravar o Caso B na placa física (o Caso C não é alcançável fisicamente, ver seção 3), e — se possível — algum registro da demonstração em aula para a professora.
 
-**Quanto ajudou:** sem revisar o histórico completo do Git (não só o estado atual dos arquivos), a documentação teria citado imagens desatualizadas como evidência da versão errada do circuito — um erro que só apareceu porque o usuário pediu explicitamente para checar os prints existentes. Sem o vídeo real da placa, o Caso D continuaria sendo um exemplo hipotético em vez de evidência física comprovada.
+**Quanto ajudou:** sem revisar o histórico completo do Git (não só o estado atual dos arquivos), a documentação teria citado imagens desatualizadas como evidência da versão errada do circuito — um erro que só apareceu porque o usuário pediu explicitamente para checar os prints existentes. Sem o vídeo real da placa, o Caso D continuaria sendo um exemplo hipotético em vez de evidência física comprovada. E ao perguntar antes de marcar tudo como "concluído sem pendência", a IA evitou afirmar que um arquivo de evidência existe no repositório quando na verdade ainda precisa ser anexado.
 
 ### 5.2 Sessão anterior recuperada do histórico (também com IA, antes de 07/08/2026)
 
@@ -310,9 +316,10 @@ Taxonomia de referência: https://credit.niso.org/
 - [x] Evidência de compilação bem-sucedida (`output_files/*.fit.summary`)
 - [x] Prints existentes no repositório conferidos (são de uma versão anterior — ver nota na seção 4.1)
 - [x] Caso D comprovado fisicamente por vídeo na placa (chaves, HEX, LEDR, interpretação decimal −12288) — ver seção 4.2
-- [ ] Rodar o GHDL de verdade sobre `v2_fp_adder_tb.vhd` e colar a saída `[PASS]`/`RESUMO` real (pendente — ação do grupo)
-- [ ] Print do GTKWave/Questa com os 4 casos do `v2_fp_adder` (pendente — ação do grupo)
-- [ ] Fotos (ou vídeo) da placa gravada e testada fisicamente para os casos A e B (pendente — ação do grupo; Caso C não é alcançável fisicamente, ver seção 3; Caso D já coberto por vídeo)
+- [x] Simulação real em GHDL/GTKWave rodada e demonstrada em aula à professora (Caso A + soma normal) — falta anexar o print/output ao repositório
+- [x] Funcionamento na placa física demonstrado ao vivo em aula (Caso A + soma normal), além do Caso D em vídeo
+- [ ] Anexar ao repositório o print do GTKWave/terminal GHDL da demonstração em aula (pendente — ação do grupo, arquivo ainda não enviado)
+- [ ] Fotos (ou vídeo) da placa para o Caso B especificamente (pendente — ação do grupo; Caso C não é alcançável fisicamente, ver seção 3)
 - [ ] Diário de Bordo de IA de sessões futuras preenchido pelo grupo
 - [x] Taxonomia CRediT (sugestão inicial — grupo deve validar)
 - [ ] Repositório marcado como **Privado** no GitHub (o roteiro da disciplina pede repositório privado; hoje ele está público)
