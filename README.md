@@ -2,16 +2,6 @@
 
 Projeto da disciplina **MCTA024 - Sistemas Digitais** (UFABC) — um circuito capaz de somar números binários em formato de ponto flutuante simplificado de 13 bits, adaptado do livro-texto *FPGA Prototyping by VHDL Examples* (Pong P. Chu, seção 3.7.4) para a placa **Terasic DE10-Lite (MAX 10)**.
 
-> **Nota sobre esta reorganização (09-10/08/2026):** o repositório acumulou várias tentativas (pastas `FPGA REGISTRADO/`, `certo-taina/`, uma versão sequencial em `versao-registrada/`, e uma pasta `somador-pf/` bem organizada que existiu entre 31/07 e 07/08 e foi **apagada** ao consolidar a versão final). Depois de revisar todo o histórico de commits, identificamos que os arquivos soltos na raiz enviados nos 2 últimos commits (`v2_fp_adder*`, arquivos Quartus, `output_files/` com `.sof`/`.pof` já gerados) são a **versão definitiva** do projeto — a única com bitstream de gravação já compilado com sucesso, e com a correção de um bug de largura de bits do livro-texto (ver seção 3). Este README documenta essa versão.
->
-> **Importante — recuperação de trabalho anterior:** ao investigar a pasta `somador-pf/` apagada (commit `7d1ab90b`), encontramos que uma sessão de IA anterior já tinha criado, para o **`fp_adder` original** (antes da correção que gerou o `v2_fp_adder`): um testbench autoverificável com `assert`/`report` (PASS/FAIL automático), um modelo golden em Python para validação cruzada, e documentação detalhada dos achados de projeto. Esse trabalho foi **recuperado e adaptado** para o `v2_fp_adder` nesta revisão — ver seções 4.1 e 5.1.
->
-> **Atualização (09/08/2026, à noite) — evidência em vídeo do funcionamento na placa física:** o grupo gravou um vídeo mostrando, passo a passo, as chaves/botões configurados na placa DE10-Lite, o resultado nos displays HEX e no LED de sinal, e a conferência manual do valor decimal obtido. Esse vídeo comprova fisicamente o **Caso D** do testbench, que foi **atualizado para usar exatamente os mesmos valores mostrados no vídeo** (antes era um caso sintético hipotético; agora é evidência real). Ver detalhes na seção 4.2.
->
-> **Atualização (10/08/2026) — simulação e placa demonstradas em aula:** o grupo já **rodou a simulação em GHDL/GTKWave** e **demonstrou o funcionamento na placa física ao vivo para a professora**, cobrindo o **Caso A (overflow/carry-out)** e um **caso de soma normal** (sem carry-out). Isso atende ao critério de simulação real em GHDL exigido pelo roteiro. O print/output de terminal dessa simulação ainda será anexado ao repositório pelo grupo assim que estiver disponível — até lá, esta seção documenta a demonstração com base no que foi confirmado pelo grupo. Ver notas atualizadas nas seções 4.1 e 4.3.
->
-> **Atualização (10/08/2026) — reorganização final da raiz do repositório:** todos os arquivos de **texto** que não fazem parte da versão definitiva (`FPGA REGISTRADO/`, `certo-taina/`, os arquivos de texto de `versao-registrada/`, os dois guias HTML soltos na raiz e `Tutorial_Somador_Ponto_Flutuante_FPGA.md`) foram **fisicamente movidos** para a pasta `outros_teste/`, preservando o conteúdo original. Um punhado de arquivos **binários** legados (`GTKWave33.png`, `RESUMO: N PASS 0 FAIL.png`, `versao-registrada/Dossie_Somador_PF_DE10Lite.pdf`, `onda.ghw`, `documentacao_simulacao_de10lite.pdf`) foi **deixado no lugar por segurança**: a ferramenta usada para reorganizar o repositório não garante que um arquivo binário reenviado byte a byte não seja corrompido, então preferimos não arriscar. Ver a seção "Estrutura do repositório" para a árvore completa e instruções de como o grupo pode terminar de mover esses binários manualmente (arrastar no GitHub web ou `git mv` local), se quiser.
-
 # Tutorial: Implementação de Somador Ponto Flutuante na DE10-Lite
 
 **Autores:** Juliana Tiemi Ito, Taina Cavichia, Lucas Gabriel Cavalheiro Rodrigues
@@ -34,8 +24,8 @@ Este projeto adapta o somador de ponto flutuante simplificado (13 bits) do livro
 | Campo | Sinal VHDL | Tamanho | Significado |
 |---|---|---|---|
 | Sinal | `sign1`/`sign2` | 1 bit | `0` = positivo, `1` = negativo |
-| Expoente | `exp1`/`exp2` | 4 bits | não sinalizado, 0 a 15 |
-| Fração (significando) | `frac1`/`frac2` | 8 bits | não sinalizado, MSB deve ser `1` quando normalizado |
+| Expoente | `exp1`/`exp2` | 4 bits | 0 a 15 |
+| Fração (significando) | `frac1`/`frac2` | 8 bits | MSB deve ser `1` quando normalizado |
 
 Valor representado: **valor = (−1)^sign × 0.frac × 2^exp**
 
@@ -54,7 +44,7 @@ Suponha que queremos representar o número **20352**.
 
 ```mermaid
 flowchart LR
-    IN["sign1,exp1,frac1\nsign2,exp2,frac2"] --> S["1. Sort\ncompara (exp&frac)\ne separa big/small"]
+    IN["sign1,exp1,frac1\nsign2,exp2,frac2"] --> S["1. Sort\ncompara (exp-frac)\ne separa big/small"]
     S --> AL["2. Align\ndesloca fracs para a\ndireita por exp_diff"]
     AL --> ADD["3. Add/Sub\nsoma se signb=signs\nsubtrai se forem diferentes"]
     ADD --> NORM["4. Normalize\nconta zeros a esquerda (leado),\ndesloca a esquerda, ajusta expoente"]
