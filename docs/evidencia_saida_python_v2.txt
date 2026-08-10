@@ -1,0 +1,27 @@
+======================================================================
+Validacao cruzada (Python golden model) -- v2_fp_adder, exp_out(4:0)
+======================================================================
+[PASS] CASO A (carry-out)
+    entrada : sign1=0 exp1=1111 frac1=11111111  |  sign2=0 exp2=1111 frac2=11111111
+    obtido  : sign_out=0 exp_out=10000 frac_out=11111111
+    esperado: sign_out=0 exp_out=10000 frac_out=11111111
+
+[PASS] CASO B (leading-zero shift)
+    entrada : sign1=0 exp1=0101 frac1=10100000  |  sign2=1 exp2=0101 frac2=10010000
+    obtido  : sign_out=0 exp_out=00010 frac_out=10000000
+    esperado: sign_out=0 exp_out=00010 frac_out=10000000
+
+[PASS] CASO C (underflow -> zero)
+    entrada : sign1=0 exp1=0001 frac1=10000000  |  sign2=1 exp2=0001 frac2=10000000
+    obtido  : sign_out=1 exp_out=00000 frac_out=00000000
+    esperado: sign_out=? exp_out=00000 frac_out=00000000
+    observacao: sign_out obtido = 1 (zero 'assinado' -- mesma particularidade de projeto documentada para o fp_adder original; nao afeta o valor numerico, pois -0 = 0)
+
+[PASS] CASO D (leado=0, sem deslocamento)
+    entrada : sign1=0 exp1=1111 frac1=10000000  |  sign2=0 exp2=1110 frac2=10000000
+    obtido  : sign_out=0 exp_out=01111 frac_out=11000000
+    esperado: sign_out=0 exp_out=01111 frac_out=11000000
+
+======================================================================
+RESUMO: 4 PASS / 0 FAIL
+======================================================================
