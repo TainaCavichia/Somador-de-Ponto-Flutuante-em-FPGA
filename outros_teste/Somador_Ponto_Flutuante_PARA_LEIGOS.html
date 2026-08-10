@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Somador de Ponto Flutuante — Guia para Leigos, passo a passo</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; max-width: 920px; margin: 40px auto; padding: 0 24px; line-height: 1.7; color: #222; font-size:16px; }
+  h1 { font-size: 27px; border-bottom: 4px solid #1e3a5f; padding-bottom: 10px; }
+  h2 { font-size: 21px; color: #fff; background:#1e3a5f; margin-top: 46px; padding:10px 16px; border-radius:6px; }
+  h3 { font-size: 17px; color: #1e3a5f; margin-top: 28px; border-bottom:2px solid #ddd; padding-bottom:4px;}
+  .conceito { background:#eaf1fb; border-left:5px solid #2b6cb0; padding:14px 18px; margin:16px 0; border-radius:4px; }
+  .exemplo { background:#e9f7ef; border-left:5px solid #2f9e44; padding:14px 18px; margin:16px 0; border-radius:4px; }
+  .alerta { background:#fff4e5; border-left:5px solid #e8890c; padding:14px 18px; margin:16px 0; border-radius:4px; }
+  .bug { background:#fdecec; border-left:5px solid #c0392b; padding:14px 18px; margin:16px 0; border-radius:4px; }
+  .passo { background:#f5f0fb; border-left:5px solid #7048b0; padding:14px 18px; margin:12px 0; border-radius:4px; }
+  .microstep { background:#fafafa; border:1px dashed #bbb; padding:10px 16px; margin:8px 0 8px 20px; border-radius:4px; font-size:15px;}
+  table { border-collapse: collapse; width:100%; margin:14px 0; font-size:14px; }
+  th, td { border:1px solid #ccc; padding:7px 10px; text-align:center; }
+  th { background:#1e3a5f; color:#fff; }
+  code, .mono { font-family: "Consolas", "Menlo", monospace; background:#f1f1f1; padding:1px 5px; border-radius:3px; font-size:13px; }
+  .bits { font-family:"Consolas",monospace; font-size:16px; letter-spacing:1px; }
+  .sign{color:#c0392b;font-weight:bold;} .exp{color:#2b6cb0;font-weight:bold;} .frac{color:#2f9e44;font-weight:bold;}
+  .toc { background:#f7f7f7; border:1px solid #ddd; padding:16px 20px; border-radius:6px; }
+  .toc a { text-decoration:none; color:#1e3a5f; }
+  .switch-on { background:#2f9e44; color:white; padding:2px 9px; border-radius:4px; font-weight:bold; }
+  .switch-off { background:#999; color:white; padding:2px 9px; border-radius:4px; }
+  .fixo { background:#e8890c; color:white; padding:2px 9px; border-radius:4px; font-size:13px; font-weight:bold;}
+  .livre { background:#2f9e44; color:white; padding:2px 9px; border-radius:4px; font-size:13px; font-weight:bold;}
+  hr { border:none; border-top:1px solid #ddd; margin:36px 0; }
+  .pergunta { font-weight:bold; color:#7048b0; }
+</style>
+</head>
+<body>
+
+<h1>Guia para leigos: como o somador de ponto flutuante funciona na DE10-Lite</h1>
+<p><em>Este documento não pressupõe nenhum conhecimento prévio. Cada conceito é explicado antes de ser usado, e cada operação é quebrada em passos bem pequenos.</em></p>
+
+<div class="toc">
+<strong>Sumário</strong><br>
+1. <a href="#o-que-e">O que esse circuito faz, em uma frase</a><br>
+2. <a href="#binario">Crash course: como números binários funcionam</a><br>
+3. <a href="#cientifica">O que é "notação científica em binário" (ponto flutuante)</a><br>
+4. <a href="#13bits">Os 13 bits do nosso formato, explicados devagar</a><br>
+5. <a href="#placa">O que é cada peça física da placa (SW, KEY, HEX, LEDR)</a><br>
+6. <a href="#cada-switch">Cada switch e cada chave, um por um — o que ele controla exatamente</a><br>
+7. <a href="#fixo-livre">O que é fixo e o que é livre — e por quê</a><br>
+8. <a href="#converter">Passo a passo bem devagar: transformar um número decimal em posições de switch</a><br>
+9. <a href="#estagios">O que acontece dentro do chip — os 4 estágios, em micro-passos</a><br>
+10. <a href="#completo">Exemplo numérico completo, do switch ao display</a><br>
+11. <a href="#ler">Como ler o número que aparece nos displays</a>
+</div>
+
+<h2 id="o-que-e">1. O que esse circuito faz, em uma frase</h2>
+<div class="conceito">
+É uma calculadora feita só de fios e portas lógicas (sem processador, sem software) que sabe fazer <strong>uma única conta</strong>: pegar dois números guardados em formato de "ponto flutuante" e somá-los, mostrando o resultado em displays luminosos. Você "digita" os números ligando e desligando switches físicos (interruptores) — não existe teclado.
+</div>
+
+<h2 id="binario">2. Crash course: como números binários funcionam</h2>
+<div class="conceito">
+No dia a dia usamos <strong>base 10</strong> (decimal): cada posição de um número vale uma potência de 10. Por exemplo, 253 = 2×100 + 5×10 + 3×1.
+<br><br>
+O computador só entende <strong>base 2</strong> (binário): cada posição só pode ser <span class="bits">0</span> ou <span class="bits">1</span>, e cada posição vale uma potência de 2 em vez de 10.
+<br><br>
+Exemplo: o número binário <span class="bits">1011</span> significa:
+<p style="text-align:center;">1×2³ + 0×2² + 1×2¹ + 1×2⁰ = 8 + 0 + 2 + 1 = <strong>11</strong> em decimal</p>
+Cada posição binária é chamada de <strong>bit</strong>. Um switch da placa, quando ligado, representa um bit <span class="bits">1</span>; quando desligado, representa um bit <span class="bits">0</span>.
+</div>
+
+<h2 id="cientifica">3. O que é "notação científica em binário" (ponto flutuante)</h2>
+<div class="conceito">
+Em decimal, às vezes escrevemos números grandes assim: 32.640 = <strong>0,9961 × 2¹⁵</strong>... calma, vamos usar um exemplo mais familiar primeiro: 3.200 pode ser escrito como <strong>3,2 × 10³</strong>. Isso é "notação científica": um número entre 1 e 10 (a "fração"), multiplicado por uma potência de 10 (o "expoente"), que indica a ordem de grandeza.
+<br><br>
+O nosso circuito faz a mesma coisa, mas em base 2: qualquer número é escrito como
+<p style="text-align:center; font-size:18px;"><strong>valor = fração × 2<sup>expoente</sup></strong></p>
+Só que aqui a fração fica sempre entre 0,5 e 1 (em vez de entre 1 e 10), porque é mais fácil de implementar em hardware. Esse é o motivo do nome <strong>"ponto flutuante"</strong>: a vírgula (o "ponto") do número "flutua" — desliza para a esquerda ou direita — dependendo do expoente escolhido.
+</div>
+
+<h2 id="13bits">4. Os 13 bits do nosso formato, explicados devagar</h2>
+<div class="conceito">
+Cada número que entra no circuito ocupa exatamente 13 fios (13 bits), divididos em três grupos:
+
+<table>
+<tr><th>Grupo</th><th>Quantos bits</th><th>Para que serve</th></tr>
+<tr><td><span class="sign">Sinal</span></td><td>1 bit</td><td>diz se o número é positivo ou negativo</td></tr>
+<tr><td><span class="exp">Expoente</span></td><td>4 bits</td><td>diz "o tamanho" do número (a potência de 2)</td></tr>
+<tr><td><span class="frac">Fração</span></td><td>8 bits</td><td>diz os dígitos "significativos" do número</td></tr>
+</table>
+
+<strong>Sinal</strong> — é o mais simples: <span class="bits">0</span> = número positivo, <span class="bits">1</span> = número negativo. Só isso.
+<br><br>
+<strong>Expoente</strong> — 4 bits dá para representar de 0000 (zero) até 1111 (quinze) em binário — ou seja, 16 valores possíveis (0 a 15). Esse número diz por qual potência de 2 vamos multiplicar a fração.
+<br><br>
+<strong>Fração</strong> — 8 bits, sempre lidos como se tivessem uma vírgula antes deles: <span class="bits">0.b1 b2 b3 b4 b5 b6 b7 b8</span>. O primeiro bit (b1) é <strong>sempre 1</strong> — essa é uma regra do formato chamada "normalização", e ela garante que a fração fique sempre entre 0,5 e 1.
+<br><br>
+<span class="pergunta">Por que a fração é sempre ≥ 0,5?</span> Porque se o primeiro bit for sempre 1, o menor valor possível da fração é <span class="bits">0.10000000</span> = 0,5, e o maior é <span class="bits">0.11111111</span> ≈ 0,996. Isso evita desperdiçar espaço representando o mesmo número de formas diferentes.
+</div>
+
+<h2 id="placa">5. O que é cada peça física da placa</h2>
+<div class="conceito">
+A DE10-Lite tem estas peças que o nosso projeto usa:
+<table>
+<tr><th>Peça</th><th>O que é</th></tr>
+<tr><td><span class="mono">SW0</span> a <span class="mono">SW9</span></td><td>10 interruptores deslizantes. Você desliza para cima = liga (1), para baixo = desliga (0). Ficam ligados/desligados até você mexer de novo.</td></tr>
+<tr><td><span class="mono">KEY0</span> e <span class="mono">KEY1</span></td><td>2 botões de pressão (como um botão de campainha). <strong>Importante:</strong> soltos, eles valem 1; pressionados, valem 0 — é o contrário do que a intuição sugere!</td></tr>
+<tr><td><span class="mono">HEX0</span> a <span class="mono">HEX3</span></td><td>4 displays de 7 segmentos (como um relógio digital), cada um mostra um dígito de 0 a F (hexadecimal).</td></tr>
+<tr><td><span class="mono">LEDR9</span></td><td>1 luzinha (LED) que acende para indicar resultado negativo.</td></tr>
+</table>
+</div>
+
+<h2 id="cada-switch">6. Cada switch e cada chave, um por um</h2>
+<div class="passo">
+Esta é a parte mais importante para quem vai operar a placa. Aqui estão <strong>todos os 12 controles físicos</strong>, o que cada um controla, e o peso (a importância) de cada um dentro do número final.
+
+<h3>Os 10 switches (SW0 a SW9)</h3>
+<table>
+<tr><th>Switch</th><th>Pertence a</th><th>Controla</th><th>Peso no número</th></tr>
+<tr><td class="mono">SW9</td><td>op2</td><td><span class="sign">sinal</span> de op2</td><td>decide se op2 é positivo ou negativo</td></tr>
+<tr><td class="mono">SW8</td><td>op2</td><td>bit 6 da fração de op2</td><td>peso 64/256 (o mais "pesado" dos bits livres de op2)</td></tr>
+<tr><td class="mono">SW7</td><td>op2</td><td>bit 5 da fração de op2</td><td>peso 32/256</td></tr>
+<tr><td class="mono">SW6</td><td>op2</td><td>bit 4 da fração de op2</td><td>peso 16/256</td></tr>
+<tr><td class="mono">SW5</td><td>op2</td><td>bit 3 da fração de op2</td><td>peso 8/256</td></tr>
+<tr><td class="mono">SW4</td><td>op2</td><td>bit 2 da fração de op2</td><td>peso 4/256</td></tr>
+<tr><td class="mono">SW3</td><td>op2</td><td>bit 1 da fração de op2</td><td>peso 2/256</td></tr>
+<tr><td class="mono">SW2</td><td>op2</td><td>bit 0 da fração de op2 (o menos significativo)</td><td>peso 1/256 (o mais "levinho")</td></tr>
+<tr><td class="mono">SW1</td><td>op1</td><td>bit 6 da fração de op1</td><td>peso 64/256</td></tr>
+<tr><td class="mono">SW0</td><td>op1</td><td>bit 5 da fração de op1</td><td>peso 32/256</td></tr>
+</table>
+
+<h3>Os 2 botões (KEY0 e KEY1)</h3>
+<table>
+<tr><th>Botão</th><th>Pertence a</th><th>Controla</th><th>Peso</th></tr>
+<tr><td class="mono">KEY1</td><td>op2</td><td>bit 1 do expoente de op2</td><td>peso 2 (dentro do expoente)</td></tr>
+<tr><td class="mono">KEY0</td><td>op2</td><td>bit 0 do expoente de op2</td><td>peso 1 (dentro do expoente)</td></tr>
+</table>
+
+<div class="alerta">
+<strong>Cuidado com a lógica invertida do botão:</strong> como o botão vale 1 quando <em>solto</em> e 0 quando <em>pressionado</em>, para escolher o maior expoente possível de op2 (15 = <span class="bits">1111</span>) você deixa os <strong>dois botões soltos</strong>. Para escolher o menor expoente possível de op2 (12 = <span class="bits">1100</span>) você precisa <strong>segurar os dois botões pressionados</strong> ao mesmo tempo — o que na prática é estranho de operar sozinho (pense em pedir ajuda a um colega para segurar os botões enquanto lê o display!).
+</div>
+</div>
+
+<h2 id="fixo-livre">7. O que é fixo e o que é livre — e por quê</h2>
+<div class="alerta">
+A placa só tem 12 controles físicos (10 switches + 2 botões), mas os dois números juntos precisam de 26 bits (13 + 13). Sobram 14 bits que <strong>não têm switch nenhum</strong> — eles foram simplesmente <em>soldados</em> (fixados) no próprio código VHDL, sempre no mesmo valor, e você não consegue mudá-los sem reprogramar o FPGA.
+
+<h3>O que está fixo em op1 (6 dos 13 bits são livres... na verdade só 2!)</h3>
+<table>
+<tr><th>Bit de op1</th><th>Status</th><th>Valor</th></tr>
+<tr><td>sinal</td><td><span class="fixo">FIXO</span></td><td>sempre 0 (op1 é sempre positivo)</td></tr>
+<tr><td>expoente (4 bits)</td><td><span class="fixo">FIXO</span></td><td>sempre <span class="bits">1111</span> = 15</td></tr>
+<tr><td>fração, bit 7</td><td><span class="fixo">FIXO</span></td><td>sempre 1 (regra de normalização)</td></tr>
+<tr><td>fração, bit 6</td><td><span class="livre">LIVRE</span></td><td>controlado por SW1</td></tr>
+<tr><td>fração, bit 5</td><td><span class="livre">LIVRE</span></td><td>controlado por SW0</td></tr>
+<tr><td>fração, bits 4 a 0</td><td><span class="fixo">FIXO</span></td><td>sempre <span class="bits">11111</span></td></tr>
+</table>
+Ou seja: de 13 bits, <strong>apenas 2 são de fato ajustáveis</strong> em op1. Isso significa que op1 só pode assumir <strong>4 valores diferentes no total</strong> (2 switches, cada um com 2 posições, 2×2=4 combinações).
+
+<h3>O que está fixo em op2 (mais flexível)</h3>
+<table>
+<tr><th>Bit de op2</th><th>Status</th><th>Valor</th></tr>
+<tr><td>sinal</td><td><span class="livre">LIVRE</span></td><td>controlado por SW9</td></tr>
+<tr><td>expoente, bits 3 e 2</td><td><span class="fixo">FIXO</span></td><td>sempre <span class="bits">11</span></td></tr>
+<tr><td>expoente, bit 1</td><td><span class="livre">LIVRE</span></td><td>controlado por KEY1</td></tr>
+<tr><td>expoente, bit 0</td><td><span class="livre">LIVRE</span></td><td>controlado por KEY0</td></tr>
+<tr><td>fração, bit 7</td><td><span class="fixo">FIXO</span></td><td>sempre 1 (regra de normalização)</td></tr>
+<tr><td>fração, bits 6 a 0</td><td><span class="livre">LIVRE</span></td><td>controlados por SW8, SW7, SW6, SW5, SW4, SW3, SW2</td></tr>
+</table>
+Em op2, 10 dos 13 bits são livres — muito mais flexível que op1.
+
+<h3>Consequência prática: por que o expoente fixo limita tanto</h3>
+Como o expoente de op2 está preso entre <span class="bits">1100</span> (12) e <span class="bits">1111</span> (15), e o expoente de op1 está travado em 15, os números que dá pra somar na placa física são sempre <strong>grandes</strong> — entre aproximadamente 2.048 e 32.640. Não é possível montar nas chaves, por exemplo, o número 50 ou 3, porque isso exigiria um expoente pequeno (perto de 5 ou 6), que a fiação simplesmente não alcança.
+</div>
+
+<h2 id="converter">8. Passo a passo bem devagar: transformar um decimal em posições de switch</h2>
+<div class="passo">
+Vamos usar um exemplo concreto do início ao fim: <strong>quero colocar o número 12.288 em op2</strong>.
+
+<div class="microstep"><strong>Micro-passo 1 — o sinal.</strong> 12.288 é positivo, então o bit de sinal é 0. Isso significa <span class="mono">SW9 = desligado (0)</span>.</div>
+
+<div class="microstep"><strong>Micro-passo 2 — achar o expoente.</strong> Precisamos achar um número inteiro "e" tal que, quando dividirmos 12.288 por 2 elevado a "e", o resultado fique entre 0,5 e 1 (lembra da seção 4? a fração tem que ficar nessa faixa).
+<br>Testando: 2¹³ = 8.192 → 12.288/8.192 = 1,5 (grande demais, passou de 1)
+<br>Testando: 2¹⁴ = 16.384 → 12.288/16.384 = 0,75 (está entre 0,5 e 1! ✓)
+<br>Então <strong>e = 14</strong>, que em binário é <span class="bits">1110</span>.</div>
+
+<div class="microstep"><strong>Micro-passo 3 — separar os bits do expoente.</strong> O expoente 14 em binário é <span class="bits">1110</span> (4 bits: 1,1,1,0). Só os dois últimos bits são ajustáveis (os dois primeiros são soldados em "11"). Então: bit de peso 2 = 1 → <span class="mono">KEY1 solto</span>; bit de peso 0 = 0 → <span class="mono">KEY0 pressionado</span>.</div>
+
+<div class="microstep"><strong>Micro-passo 4 — calcular a fração.</strong> Pegamos o resultado da divisão do passo 2: 0,75. Multiplicamos por 256 (porque a fração tem 8 bits, e 2⁸=256): 0,75 × 256 = 192. Convertendo 192 para binário de 8 dígitos: <span class="bits">11000000</span>.</div>
+
+<div class="microstep"><strong>Micro-passo 5 — separar os bits da fração.</strong> A fração é <span class="bits">1 1 0 0 0 0 0 0</span> (bit7 a bit0). O bit7 (o primeiro "1") é soldado, não precisa mexer em nada. Os outros 7 bits vão nos switches, na ordem: bit6→SW8, bit5→SW7, bit4→SW6, bit3→SW5, bit2→SW4, bit1→SW3, bit0→SW2.
+<br>Como a fração é <span class="bits">1,1,0,0,0,0,0,0</span> (ignorando o primeiro bit fixo, sobra <span class="bits">1,0,0,0,0,0,0</span> para os 7 switches):
+<br><span class="mono">SW8 = ligado (1)</span>, <span class="mono">SW7 = desligado</span>, <span class="mono">SW6 = desligado</span>, <span class="mono">SW5 = desligado</span>, <span class="mono">SW4 = desligado</span>, <span class="mono">SW3 = desligado</span>, <span class="mono">SW2 = desligado</span>.</div>
+
+<h3>Resumo final da posição de cada switch/botão para gravar 12.288 em op2:</h3>
+<table>
+<tr><th>Controle</th><th>Posição</th></tr>
+<tr><td class="mono">SW9</td><td><span class="switch-off">desligado</span></td></tr>
+<tr><td class="mono">SW8</td><td><span class="switch-on">ligado</span></td></tr>
+<tr><td class="mono">SW7</td><td><span class="switch-off">desligado</span></td></tr>
+<tr><td class="mono">SW6</td><td><span class="switch-off">desligado</span></td></tr>
+<tr><td class="mono">SW5</td><td><span class="switch-off">desligado</span></td></tr>
+<tr><td class="mono">SW4</td><td><span class="switch-off">desligado</span></td></tr>
+<tr><td class="mono">SW3</td><td><span class="switch-off">desligado</span></td></tr>
+<tr><td class="mono">SW2</td><td><span class="switch-off">desligado</span></td></tr>
+<tr><td class="mono">KEY1</td><td><span class="switch-on">solto</span></td></tr>
+<tr><td class="mono">KEY0</td><td><span class="switch-off">pressionado</span></td></tr>
+</table>
+</div>
+
+<div class="alerta">
+<strong>E o op1?</strong> Como vimos na seção 7, op1 não é "digitado" de verdade — você só escolhe entre 4 opções fixas usando SW1 e SW0:
+<table>
+<tr><th>SW1</th><th>SW0</th><th>Valor de op1</th></tr>
+<tr><td><span class="switch-off">0</span></td><td><span class="switch-off">0</span></td><td>20.352</td></tr>
+<tr><td><span class="switch-off">0</span></td><td><span class="switch-on">1</span></td><td>24.448</td></tr>
+<tr><td><span class="switch-on">1</span></td><td><span class="switch-off">0</span></td><td>28.544</td></tr>
+<tr><td><span class="switch-on">1</span></td><td><span class="switch-on">1</span></td><td>32.640</td></tr>
+</table>
+</div>
+
+<h2 id="estagios">9. O que acontece dentro do chip — os 4 estágios, em micro-passos</h2>
+<div class="conceito">
+Assim que os dois números de 13 bits chegam prontos (vindos dos switches), o circuito interno faz a soma em <strong>4 etapas sequenciais</strong>, uma depois da outra, como uma linha de montagem. Nenhuma etapa espera você apertar nada — tudo acontece quase instantaneamente, o tempo todo, enquanto os switches estiverem naquela posição.
+</div>
+
+<h3>Estágio 1 — Ordenar (achar quem é o maior)</h3>
+<div class="microstep">
+O circuito compara os dois números e decide qual é "maior" e qual é "menor" em valor absoluto (sem olhar o sinal). Ele faz isso comparando primeiro o expoente; se empatar, compara a fração. Chama o maior de "big" e o menor de "small". Isso é necessário porque, para somar dois números com expoentes diferentes, é preciso "alinhá-los" primeiro — e sempre se desloca o menor para encaixar no tamanho do maior (nunca o contrário, para não perder informação do número grande).
+</div>
+
+<h3>Estágio 2 — Alinhar (igualar os expoentes)</h3>
+<div class="microstep">
+Pense em somar 3,2×10³ com 5×10¹ — na mão, você reescreveria o segundo número como 0,05×10³ para os dois terem o mesmo expoente, e só então somaria as frações (3,2+0,05). É exatamente isso que o circuito faz, mas em binário: ele calcula a diferença entre os dois expoentes e "empurra" os bits da fração do número menor para a direita, essa quantidade de casas. Cada casa empurrada para a direita divide o valor por 2 — é assim que a fração "compensa" o expoente que ficou pra trás.
+</div>
+
+<h3>Estágio 3 — Somar ou subtrair as frações</h3>
+<div class="microstep">
+Agora que os dois números já têm o "mesmo tamanho" (mesmo expoente, depois do alinhamento), basta somar (ou subtrair, se os sinais forem diferentes) as duas frações, como uma soma binária comum, dígito por dígito, com "vai um" quando necessário. O circuito guarda 1 bit extra além dos 8 normais, especificamente para capturar se essa soma "estourou" (deu um resultado maior do que cabe em 8 bits).
+</div>
+
+<h3>Estágio 4 — Normalizar (arrumar a casa)</h3>
+<div class="microstep">
+A soma do estágio 3 pode não estar mais no formato "fração começa com 1" (a regra da seção 4). O estágio 4 conserta isso, e tem <strong>três caminhos possíveis</strong>:
+<br><br>
+<strong>Caminho A — estourou (carry-out):</strong> se a soma do estágio 3 precisou daquele bit extra, o resultado é maior do que cabia nos 8 bits — então o circuito empurra a fração 1 casa para a direita (dividindo por 2) e soma 1 ao expoente (compensando, multiplicando por 2) para manter o valor certo.
+<br><br>
+<strong>Caminho B — tem zeros sobrando na frente:</strong> se a soma deu um resultado "pequeno" (com zeros nas primeiras posições, tipo <span class="bits">00011010</span>), o circuito conta quantos zeros tem na frente, empurra a fração para a <em>esquerda</em> essa quantidade de casas (multiplicando), e subtrai a mesma quantidade do expoente (compensando, dividindo). Isso recoloca o primeiro bit em 1.
+<br><br>
+<strong>Caminho C — resultado pequeno demais, vira zero:</strong> se a quantidade de zeros contada no Caminho B for maior do que o próprio expoente aguenta descontar, o número é tão pequeno que o formato não consegue mais representá-lo com precisão — o circuito simplesmente zera o resultado.
+</div>
+
+<h2 id="completo">10. Exemplo numérico completo, do switch ao display</h2>
+<div class="exemplo">
+Vamos somar <strong>op1 = 20.352</strong> (SW1 e SW0 desligados) com <strong>op2 = 12.288</strong> (switches montados na seção 8).
+
+<h3>O que entra no circuito</h3>
+<table>
+<tr><th></th><th>sinal</th><th>expoente</th><th>fração</th><th>valor</th></tr>
+<tr><td>op1</td><td class="bits">0</td><td class="bits">1111 (15)</td><td class="bits">10011111 (159)</td><td>20.352</td></tr>
+<tr><td>op2</td><td class="bits">0</td><td class="bits">1110 (14)</td><td class="bits">11000000 (192)</td><td>12.288</td></tr>
+</table>
+
+<h3>Estágio 1 — Ordenar</h3>
+<div class="microstep">Compara-se o "tamanho total" dos dois: expoente 15 (op1) é maior que expoente 14 (op2), então op1 vira o "big" e op2 vira o "small", sem nem precisar olhar a fração.</div>
+
+<h3>Estágio 2 — Alinhar</h3>
+<div class="microstep">
+Diferença de expoentes: 15 − 14 = 1. Empurra a fração de op2 (<span class="bits">11000000</span> = 192) uma casa para a direita, entrando um zero pela esquerda: <span class="bits">01100000</span> = 96. (Confira: 96 é metade de 192 — faz sentido, empurrar 1 casa pra direita divide por 2.)
+</div>
+
+<h3>Estágio 3 — Somar</h3>
+<div class="microstep">
+Os dois sinais são iguais (ambos positivos) → soma normal: 159 + 96 = <strong>255</strong>. Em binário com o bit extra de segurança: <span class="bits">0 11111111</span>. O bit extra é 0, então não estourou.
+</div>
+
+<h3>Estágio 4 — Normalizar</h3>
+<div class="microstep">
+Não estourou (Caminho A não se aplica). O primeiro bit da soma já é 1 (<span class="bits">11111111</span>), então não tem zeros sobrando na frente — zero casas para deslocar (Caminho B com deslocamento zero). O expoente final fica igual ao do "big": 15.
+</div>
+
+<h3>O que sai (o resultado)</h3>
+<table>
+<tr><th>sinal</th><th>expoente</th><th>fração</th><th>valor decodificado</th></tr>
+<tr><td class="bits">0</td><td class="bits">01111 (15)</td><td class="bits">11111111 (255)</td><td><strong>32.640</strong></td></tr>
+</table>
+Confere: 20.352 + 12.288 = 32.640. ✓
+</div>
+
+<h2 id="ler">11. Como ler o número que aparece nos displays</h2>
+<div class="conceito">
+O resultado sai espalhado em 4 displays, cada um mostrando um dígito hexadecimal (0-9, depois A-F para 10-15):
+<table>
+<tr><th>Display</th><th>O que mostra</th></tr>
+<tr><td class="mono">HEX3</td><td>o 5º bit (mais significativo) do expoente — só pode mostrar 0 ou 1</td></tr>
+<tr><td class="mono">HEX2</td><td>os outros 4 bits do expoente, como um dígito hexadecimal (0 a F)</td></tr>
+<tr><td class="mono">HEX1</td><td>os 4 bits mais altos da fração</td></tr>
+<tr><td class="mono">HEX0</td><td>os 4 bits mais baixos da fração</td></tr>
+<tr><td class="mono">LEDR9</td><td>aceso = resultado negativo</td></tr>
+</table>
+<strong>Para transformar de volta em decimal:</strong> junte HEX3+HEX2 para formar o expoente (em hexadecimal, depois converta), junte HEX1+HEX0 para formar a fração (também em hexadecimal), depois aplique a fórmula da seção 3:
+<p style="text-align:center;"><strong>valor = (fração/256) × 2<sup>expoente</sup></strong></p>
+No nosso exemplo (resultado 32.640, expoente 15, fração 255): os displays mostrariam <span class="mono">HEX3=0, HEX2=F, HEX1=F, HEX0=F</span> (porque 15 em hex é "F" e 255 em hex é "FF").
+</div>
+
+<hr>
+<p style="color:#888; font-size:13px;">Documento gerado como material de apoio (versão "para leigos") para o projeto MCTA024 — UFABC. Todos os números foram verificados por cálculo direto das equações do <span class="mono">v2_fp_adder.vhd</span>.</p>
+
+</body>
+</html>
