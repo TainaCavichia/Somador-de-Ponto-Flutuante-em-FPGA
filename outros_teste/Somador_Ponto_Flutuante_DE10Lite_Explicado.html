@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Somador de Ponto Flutuante DE10-Lite — Explicado de ponta a ponta</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 24px; line-height: 1.6; color: #222; }
+  h1 { font-size: 26px; border-bottom: 3px solid #1e3a5f; padding-bottom: 10px; }
+  h2 { font-size: 20px; color: #1e3a5f; margin-top: 40px; border-left: 6px solid #1e3a5f; padding-left: 10px; }
+  h3 { font-size: 16px; color: #333; margin-top: 24px; }
+  .conceito { background:#eaf1fb; border-left:5px solid #2b6cb0; padding:14px 18px; margin:16px 0; border-radius:4px; }
+  .exemplo { background:#e9f7ef; border-left:5px solid #2f9e44; padding:14px 18px; margin:16px 0; border-radius:4px; }
+  .alerta { background:#fff4e5; border-left:5px solid #e8890c; padding:14px 18px; margin:16px 0; border-radius:4px; }
+  .bug { background:#fdecec; border-left:5px solid #c0392b; padding:14px 18px; margin:16px 0; border-radius:4px; }
+  .passo { background:#f5f0fb; border-left:5px solid #7048b0; padding:14px 18px; margin:12px 0; border-radius:4px; }
+  table { border-collapse: collapse; width:100%; margin:14px 0; font-size:14px; }
+  th, td { border:1px solid #ccc; padding:6px 10px; text-align:center; }
+  th { background:#1e3a5f; color:#fff; }
+  code, .mono { font-family: "Consolas", "Menlo", monospace; background:#f1f1f1; padding:1px 5px; border-radius:3px; font-size:13px; }
+  .bits { font-family:"Consolas",monospace; font-size:15px; letter-spacing:1px; }
+  .sign{color:#c0392b;font-weight:bold;} .exp{color:#2b6cb0;font-weight:bold;} .frac{color:#2f9e44;font-weight:bold;}
+  .toc { background:#f7f7f7; border:1px solid #ddd; padding:16px 20px; border-radius:6px; }
+  .toc a { text-decoration:none; color:#1e3a5f; }
+  .switch-on { background:#2f9e44; color:white; padding:2px 8px; border-radius:4px; font-weight:bold; }
+  .switch-off { background:#999; color:white; padding:2px 8px; border-radius:4px; }
+  .fixo { background:#e8890c; color:white; padding:1px 6px; border-radius:4px; font-size:12px; }
+  hr { border:none; border-top:1px solid #ddd; margin:36px 0; }
+</style>
+</head>
+<body>
+
+<h1>Somador de ponto flutuante na DE10-Lite — do decimal ao circuito, passo a passo</h1>
+<p><em>Documento de apoio para o relatório de MCTA024 — explica a lógica do <span class="mono">v2_fp_adder.vhd</span> e do wrapper <span class="mono">v2_fp_adder_de10lite.vhd</span>, com contas numéricas completas.</em></p>
+
+<div class="toc">
+<strong>Sumário</strong><br>
+1. <a href="#formato">O formato de 13 bits — o que cada bit significa</a><br>
+2. <a href="#pinos">Como os pinos físicos viram os operandos</a><br>
+3. <a href="#conversao">Como converter um número decimal nos bits de entrada</a><br>
+4. <a href="#limite">Limitação importante: faixa de valores possível na placa</a><br>
+5. <a href="#exemplo1">Exemplo completo 1 — soma sem carry-out</a><br>
+6. <a href="#exemplo2">Exemplo completo 2 — soma com carry-out (o bug da v1 e o conserto da v2)</a><br>
+7. <a href="#zero">Por que o caso "resultado vira zero" não aparece na placa física</a><br>
+8. <a href="#leitura">Como ler o resultado nos displays</a>
+</div>
+
+<h2 id="formato">1. O formato de 13 bits</h2>
+<div class="conceito">
+Cada número neste projeto é representado com <strong>13 bits</strong>, divididos em três campos:
+<table>
+<tr><th>Campo</th><th>Tamanho</th><th>Significado</th></tr>
+<tr><td><span class="sign">sinal (s)</span></td><td>1 bit</td><td>0 = positivo, 1 = negativo</td></tr>
+<tr><td><span class="exp">expoente (e)</span></td><td>4 bits</td><td>número inteiro sem sinal, de 0 a 15</td></tr>
+<tr><td><span class="frac">fração (f)</span></td><td>8 bits</td><td>a parte "significativa" do número, sempre entre 0.5 e 1</td></tr>
+</table>
+A fórmula que liga os bits ao valor decimal é:
+<p style="text-align:center;font-size:18px;"><strong>valor = (−1)<sup>s</sup> × 0.f × 2<sup>e</sup></strong></p>
+Onde <span class="mono">0.f</span> é a fração lida em binário (ex: fração <span class="bits">10011111</span> = 0.10011111₂ = 159/256 = 0.62109375 em decimal).
+<br><br>
+<strong>Regra de normalização:</strong> o primeiro bit da fração (bit mais significativo) é sempre <span class="bits">1</span>. Isso garante que 0.f fique sempre entre 0.5 (inclusive) e 1 (exclusive) — é o que dá o nome "normalizado" ao formato.
+</div>
+
+<h2 id="pinos">2. Como os pinos físicos viram os operandos</h2>
+<div class="conceito">
+O wrapper <span class="mono">v2_fp_adder_de10lite.vhd</span> monta os dois operandos (13 bits cada) a partir das 10 chaves (<span class="mono">SW</span>) e 2 botões (<span class="mono">KEY</span>) disponíveis na placa. Só existem 12 entradas físicas para alimentar 26 bits (13+13) — então boa parte dos bits foi <strong>fixada em hardware</strong> (não é possível digitar/alterar), e só uma parte fica realmente livre para o usuário.
+</div>
+
+<table>
+<tr><th>Operando</th><th>Sinal</th><th>Expoente (4 bits)</th><th>Fração (8 bits)</th></tr>
+<tr>
+  <td><strong>op1</strong> <span class="fixo">quase-fixo</span></td>
+  <td><span class="mono">'0'</span> — sempre positivo</td>
+  <td><span class="mono">"1111"</span> = 15, fixo</td>
+  <td><span class="mono">1, SW1, SW0, 1,1,1,1,1</span></td>
+</tr>
+<tr>
+  <td><strong>op2</strong> <span class="fixo" style="background:#2f9e44;">entrada normal</span></td>
+  <td><span class="mono">SW9</span></td>
+  <td><span class="mono">"11", KEY1, KEY0</span></td>
+  <td><span class="mono">1, SW8, SW7, SW6, SW5, SW4, SW3, SW2</span></td>
+</tr>
+</table>
+
+<div class="alerta">
+<strong>Atenção com o KEY:</strong> na DE10-Lite os botões <span class="mono">KEY</span> são "ativos em nível baixo" — no estado normal (não pressionado) o pino fica em <span class="bits">1</span>, e pressionar o botão o leva a <span class="bits">0</span>. O VHDL usa o valor elétrico direto, sem inverter. Então, para gravar um expoente <span class="mono">"1111"</span> (15) em op2, os dois botões devem ficar <strong>soltos</strong> (ambos em 1). Para gravar <span class="mono">"1100"</span> (12), os dois devem estar <strong>pressionados</strong> (ambos em 0).
+</div>
+
+<h2 id="conversao">3. Como converter um número decimal nos bits de entrada</h2>
+
+<h3>3.1 — Roteiro geral (vale para qualquer valor normalizado de 13 bits)</h3>
+<div class="passo">
+<strong>Passo 1 — sinal:</strong> se o número D é negativo, s=1 e trabalhe com o módulo M = |D| daqui em diante. Se for positivo, s=0.<br><br>
+<strong>Passo 2 — encontrar o expoente e:</strong>
+<p style="text-align:center;"><strong>e = ⌊log₂(M)⌋ + 1</strong></p>
+Esse e é o valor que faz M/2<sup>e</sup> cair no intervalo [0.5, 1) — ou seja, é o "tamanho" em potências de 2 que o número ocupa.<br><br>
+<strong>Passo 3 — calcular a fração escalada:</strong>
+<p style="text-align:center;"><strong>frac_escalada = M / 2<sup>e</sup></strong> &nbsp; (vai sempre dar um valor entre 0.5 e 1)</p>
+<strong>Passo 4 — converter a fração para 8 bits:</strong>
+<p style="text-align:center;"><strong>frac_inteira = ⌊ frac_escalada × 256 ⌋</strong></p>
+(o piso/truncamento aqui é proposital — o projeto do livro ignora arredondamento, então sobra um pequeno erro que vamos ver no exemplo 2). Escreva frac_inteira em binário com 8 dígitos — o primeiro sempre vai dar 1, confirmando a normalização.
+</div>
+
+<h3>3.2 — Caso do operando "quase-fixo" (op1)</h3>
+<div class="alerta">
+Como só existem 2 bits livres (<span class="mono">SW1</span>, <span class="mono">SW0</span>), op1 <strong>não aceita um número decimal arbitrário</strong> — ele só pode assumir 4 valores fixos, sempre positivos, sempre com expoente 15:
+<table>
+<tr><th>SW1</th><th>SW0</th><th>Fração (8 bits)</th><th>Valor decimal</th></tr>
+<tr><td><span class="switch-off">0</span></td><td><span class="switch-off">0</span></td><td class="bits">10011111</td><td>20352</td></tr>
+<tr><td><span class="switch-off">0</span></td><td><span class="switch-on">1</span></td><td class="bits">10111111</td><td>24448</td></tr>
+<tr><td><span class="switch-on">1</span></td><td><span class="switch-off">0</span></td><td class="bits">11011111</td><td>28544</td></tr>
+<tr><td><span class="switch-on">1</span></td><td><span class="switch-on">1</span></td><td class="bits">11111111</td><td>32640</td></tr>
+</table>
+Ou seja: para "digitar" op1 na placa, você não converte um decimal — você <strong>escolhe uma das 4 linhas da tabela acima</strong> combinando SW1/SW0.
+</div>
+
+<h3>3.3 — Caso do operando "normal" (op2) — exemplo de conversão completa</h3>
+<div class="exemplo">
+<strong>Problema:</strong> quero colocar o número decimal <strong>12288</strong> em op2. Quais switches e botões eu ligo?
+<br><br>
+<strong>Resposta, passo a passo:</strong>
+<ol>
+<li>Sinal: 12288 é positivo → s = 0 → <span class="mono">SW9 = 0</span></li>
+<li>Expoente: e = ⌊log₂(12288)⌋ + 1 = ⌊13.585⌋ + 1 = 13 + 1 = <strong>14</strong> → binário <span class="bits">1110</span></li>
+<li>Fração escalada: 12288 / 2<sup>14</sup> = 12288 / 16384 = <strong>0.75</strong></li>
+<li>Fração inteira: ⌊0.75 × 256⌋ = ⌊192⌋ = <strong>192</strong> → binário <span class="bits">11000000</span></li>
+</ol>
+Bits finais de op2: sinal <span class="bits sign">0</span> | expoente <span class="bits exp">1110</span> | fração <span class="bits frac">11000000</span>
+<br><br>
+Agora traduzindo para os pinos físicos (lembrando do mapeamento da seção 2):
+<table>
+<tr><th>Bit do expoente</th><th>Fonte</th><th>Estado do pino</th></tr>
+<tr><td>bits 3,2 (sempre "11")</td><td>fiação fixa</td><td>—</td></tr>
+<tr><td>bit 1</td><td>KEY1</td><td><span class="switch-on">solto (1)</span></td></tr>
+<tr><td>bit 0</td><td>KEY0</td><td><span class="switch-off">pressionado (0)</span></td></tr>
+</table>
+<table>
+<tr><th>Bit da fração</th><th>Fonte</th><th>Estado do pino</th></tr>
+<tr><td>bit 7 (sempre 1)</td><td>fiação fixa</td><td>—</td></tr>
+<tr><td>bit 6</td><td>SW8</td><td><span class="switch-on">1</span></td></tr>
+<tr><td>bit 5</td><td>SW7</td><td><span class="switch-off">0</span></td></tr>
+<tr><td>bit 4</td><td>SW6</td><td><span class="switch-off">0</span></td></tr>
+<tr><td>bit 3</td><td>SW5</td><td><span class="switch-off">0</span></td></tr>
+<tr><td>bit 2</td><td>SW4</td><td><span class="switch-off">0</span></td></tr>
+<tr><td>bit 1</td><td>SW3</td><td><span class="switch-off">0</span></td></tr>
+<tr><td>bit 0</td><td>SW2</td><td><span class="switch-off">0</span></td></tr>
+</table>
+</div>
+
+<h2 id="limite">4. Limitação importante: faixa de valores possível na placa</h2>
+<div class="bug">
+Como o expoente de op2 está sempre travado em <span class="mono">"11xx"</span> (12 a 15) pela fiação, e o de op1 está travado em <span class="mono">15</span>, <strong>a placa física só consegue somar números grandes</strong>:
+<table>
+<tr><th>Operando</th><th>Faixa de valores representável na placa</th></tr>
+<tr><td>op1</td><td>apenas 4 valores fixos, entre 20352 e 32640</td></tr>
+<tr><td>op2</td><td>de 2048 (0.5 × 2¹²) até 32640 (quase 2¹⁵), positivo ou negativo</td></tr>
+</table>
+Não é possível, por exemplo, digitar 100, 5 ou 0.5 diretamente nas chaves da placa — esses valores exigiriam um expoente pequeno (e ≤ 7, por exemplo), que a fiação do <span class="mono">v2_fp_adder_de10lite.vhd</span> não permite alcançar. Só é possível testar a faixa completa (todos os 16 valores de expoente) rodando o <span class="mono">v2_fp_adder_tb.vhd</span> em simulação, onde os sinais são atribuídos diretamente no VHDL sem passar pelas chaves.
+</div>
+
+<h2 id="exemplo1">5. Exemplo completo 1 — soma sem carry-out (20352 + 12288)</h2>
+<div class="exemplo">
+Usando os valores das seções 3.2 e 3.3: <strong>op1 = 20352</strong> (SW1=0, SW0=0) e <strong>op2 = 12288</strong> (configurado como na tabela acima).
+
+<h3>Entrada</h3>
+<table>
+<tr><th></th><th>sinal</th><th>expoente</th><th>fração</th><th>valor decimal</th></tr>
+<tr><td>op1</td><td class="bits">0</td><td class="bits">1111</td><td class="bits">10011111</td><td>20352</td></tr>
+<tr><td>op2</td><td class="bits">0</td><td class="bits">1110</td><td class="bits">11000000</td><td>12288</td></tr>
+</table>
+
+<h3>Estágio 1 — ordenar</h3>
+Compara-se <span class="mono">exp&amp;frac</span> dos dois: <span class="bits">1111 10011111</span> (op1) &gt; <span class="bits">1110 11000000</span> (op2), porque o expoente de op1 já é maior.
+→ <strong>big = op1</strong> (expb=1111=15, fracb=10011111=159) &nbsp;&nbsp; <strong>small = op2</strong> (exps=1110=14, fracs=11000000=192)
+
+<h3>Estágio 2 — alinhar</h3>
+exp_diff = expb − exps = 15 − 14 = <strong>1</strong> (<span class="bits">0001</span>)<br>
+Desloca fracs 1 posição para a direita, preenchendo com 0 à esquerda:<br>
+fraca = <span class="bits">0</span> &amp; fracs(7 até 1) = <span class="bits">0</span> &amp; <span class="bits">1100000</span> = <span class="bits">01100000</span> = <strong>96</strong>
+
+<h3>Estágio 3 — somar/subtrair</h3>
+Os sinais são iguais (ambos positivos) → soma:<br>
+sum = fracb + fraca = 159 + 96 = <strong>255</strong> = <span class="bits">0 11111111</span> (9 bits, bit extra de carry = 0)
+
+<h3>Estágio 4 — normalizar</h3>
+sum(8) = 0 → sem carry-out.<br>
+sum(7) = 1 → nenhum zero à esquerda → leado = <span class="bits">000</span><br>
+leado (0) não é maior que expb (15) → caso normal:<br>
+expn = expb − leado = 15 − 0 = <strong>15</strong> = <span class="bits">01111</span> (agora com 5 bits)<br>
+fracn = sum_norm = <span class="bits">11111111</span> = <strong>255</strong>
+
+<h3>Saída</h3>
+<table>
+<tr><th>sign_out</th><th>exp_out (5 bits)</th><th>frac_out</th><th>valor decodificado</th></tr>
+<tr><td class="bits">0</td><td class="bits">01111 (=15)</td><td class="bits">11111111 (=255)</td><td><strong>255/256 × 2¹⁵ = 32640</strong></td></tr>
+</table>
+✅ Confere exatamente com 20352 + 12288 = 32640 — sem nenhum erro de arredondamento neste caso.
+</div>
+
+<h2 id="exemplo2">6. Exemplo completo 2 — soma com carry-out (o bug da v1 e o conserto da v2)</h2>
+<div class="exemplo">
+Agora usando <strong>op1 = 32640</strong> (SW1=1, SW0=1, o maior valor possível de op1) e <strong>op2 = 30720</strong>, configurado com fração 0.9375 (<span class="bits">11110000</span>) e expoente 15 (KEY1 e KEY0 soltos), sinal positivo.
+
+<h3>Entrada</h3>
+<table>
+<tr><th></th><th>sinal</th><th>expoente</th><th>fração</th><th>valor decimal</th></tr>
+<tr><td>op1</td><td class="bits">0</td><td class="bits">1111</td><td class="bits">11111111</td><td>32640</td></tr>
+<tr><td>op2</td><td class="bits">0</td><td class="bits">1111</td><td class="bits">11110000</td><td>30720</td></tr>
+</table>
+
+<h3>Estágio 1 — ordenar</h3>
+Expoentes empatados (15 = 15) → desempata pela fração: 255 &gt; 240 → <strong>big = op1</strong> (fracb=255), <strong>small = op2</strong> (fracs=240)
+
+<h3>Estágio 2 — alinhar</h3>
+exp_diff = 15 − 15 = 0 → nenhum deslocamento: fraca = fracs = <strong>240</strong> (<span class="bits">11110000</span>)
+
+<h3>Estágio 3 — somar/subtrair</h3>
+sum = fracb + fraca = 255 + 240 = <strong>495</strong> = <span class="bits">1 11101111</span> (9 bits) → <strong>sum(8) = 1 → carry-out!</strong>
+
+<h3>Estágio 4 — normalizar (caminho de carry-out)</h3>
+Como sum(8)=1, entra no primeiro ramo do <span class="mono">if</span>:<br>
+expn = expb + 1 = 15 + 1 = <strong>16</strong> = <span class="bits">10000</span> (precisa mesmo do 5º bit!)<br>
+fracn = sum(8 até 1) = <span class="bits">11110111</span> = <strong>247</strong> &nbsp;<em>(o bit 0 do sum, que valia 1, é descartado — é o erro de arredondamento que o projeto assume ignorar)</em>
+
+<h3>Saída (v2 — 5 bits de expoente)</h3>
+<table>
+<tr><th>sign_out</th><th>exp_out</th><th>frac_out</th><th>valor decodificado</th></tr>
+<tr><td class="bits">0</td><td class="bits">10000 (=16)</td><td class="bits">11110111 (=247)</td><td><strong>247/256 × 2¹⁶ = 63232</strong></td></tr>
+</table>
+Soma matemática real: 32640 + 30720 = <strong>63360</strong>. O circuito devolveu <strong>63232</strong> — uma diferença de 128, que é exatamente o peso do bit descartado no truncamento (erro de ~0,2%, esperado e aceitável pelo próprio enunciado do projeto).
+</div>
+
+<div class="bug">
+<h3>Por que isso comprova o conserto v1 → v2</h3>
+No código original do livro, <span class="mono">exp_out</span> tinha só <strong>4 bits</strong>. Repetindo o estágio 4 com expn de 4 bits:<br>
+expn = expb + 1 = 15 + 1 = 16 → em 4 bits, 16 não cabe e "estoura" para <span class="bits">0000</span> = <strong>0</strong>.<br><br>
+O valor decodificado seria: 247/256 × 2⁰ = <strong>0,96</strong> — um número <em>quase mil vezes menor</em> que os operandos originais, sem nenhum aviso de erro. É exatamente esse estouro silencioso que a v2 corrige usando 5 bits em <span class="mono">exp_out</span> e a função <span class="mono">resize()</span>.
+</div>
+
+<h2 id="zero">7. Por que o caso "resultado vira zero" não aparece na placa física</h2>
+<div class="alerta">
+O 4º estágio tem um terceiro caminho, para quando o resultado é pequeno demais e deve virar zero: isso acontece quando <span class="mono">leado &gt; expb</span> (mais zeros à esquerda do que o expoente "aguenta" descontar).
+<br><br>
+Só que <span class="mono">leado</span> é sempre um número entre 0 e 7 (é um contador de 3 bits), e na placa física <span class="mono">expb</span> nunca é menor que 12 — porque op1 está fixo em expoente 15 e op2 está travado entre 12 e 15. Como 7 nunca é maior que 12, <strong>essa condição nunca acontece</strong> usando as chaves da DE10-Lite. É por isso que o "CASO C" do testbench <span class="mono">v2_fp_adder_tb.vhd</span> precisa atribuir os expoentes diretamente em VHDL (<span class="mono">exp1 &lt;= "0001"</span>), contornando o wrapper físico — só assim dá para testar esse terceiro caminho de normalização.
+</div>
+
+<h2 id="leitura">8. Como ler o resultado nos displays</h2>
+<div class="conceito">
+Os 4 displays de 7 segmentos mostram o resultado em hexadecimal:
+<table>
+<tr><th>Display</th><th>Mostra</th></tr>
+<tr><td>HEX3</td><td>bit 4 (mais significativo) do expoente — só 0 ou 1</td></tr>
+<tr><td>HEX2</td><td>bits 3 a 0 do expoente, em hexadecimal (0-F)</td></tr>
+<tr><td>HEX1</td><td>nibble alto da fração (bits 7-4), em hexadecimal</td></tr>
+<tr><td>HEX0</td><td>nibble baixo da fração (bits 3-0), em hexadecimal</td></tr>
+<tr><td>LEDR9</td><td>sinal: aceso = negativo</td></tr>
+</table>
+<strong>Exemplo:</strong> no resultado do exemplo 2 (exp_out=16, frac_out=247=0xF7), os displays mostrariam <span class="mono">HEX3=1, HEX2=0, HEX1=F, HEX0=7</span>. Juntando HEX3+HEX2 = <span class="mono">"10"</span> em hex = 16 decimal (expoente); HEX1+HEX0 = <span class="mono">"F7"</span> em hex = 247 decimal (fração). Depois é só aplicar a fórmula: valor = frac/256 × 2<sup>exp</sup>.
+</div>
+
+<hr>
+<p style="color:#888; font-size:13px;">Documento gerado como material de apoio para o projeto MCTA024 (Sistemas Digitais) — UFABC. Contas verificadas por simulação numérica das equações do <span class="mono">v2_fp_adder.vhd</span>.</p>
+
+</body>
+</html>
