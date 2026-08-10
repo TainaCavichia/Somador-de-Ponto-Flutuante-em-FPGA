@@ -213,9 +213,23 @@ O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (
 
 **Quanto ajudou:** permitiu limpar a raiz do repositório sem risco de corromper as evidências binárias mais importantes (imagens, PDF, forma de onda), que continuam íntegras e acessíveis nos mesmos links de antes.
 
-**Outras contribuições:** Usamos IA generativa para criar um fluxograma organizado de cada etapa do projeto, baseado no arquivo modelo e resumos do que foi feito pelo grupo
+**Outras contribuições:** Utilizamos o Claude para auxiliar no diagnóstico de erros de síntese, na geração de casos de teste (físicos e em simulação) e na criação de um testbench VHDL para observar o 4º estágio (normalização) do somador de ponto flutuante. Abaixo está a análise crítica do uso da ferramenta.
 
-Também usamos a IA para gerar casos de testes para usar como exercícios de verificação na placa, após a implementação do código que contém a adaptação
+*Prompts Utilizados:*
+
+"estou adaptando um código para usar mais um display de 7 segmentos em uma placa fpga. estou com o seguinte erro: Error (10344): VHDL expression error at v2_fp_adder_de10lite.vhd(58): expression has 1 elements, but must have 4 elements [...] Os arquivos estão anexos"
+
+"se eu faço esse caso -- CASO A: forca carry-out [...] a saída que obtenho em hexadecimal no display é 0 (sinal) 0FE0, por que?"
+
+"faça casos de teste para que eu possa testar na placa considerando os bits fixos da placa: sign1 <= '0'; exp1 <= "1111"; frac1 <= '1' & SW(1) & SW(0) & "11111"; sign2 <= SW(9); exp2 <= "11" & KEY(1) & KEY(0); frac2 <= '1' & SW(8 downto 2);"
+
+"preciso gerar uma imagem do funcionamento do 4º estágio (normalização) no gtkwave considerando os 4 casos detalhados. Para isso preciso de um testbench para esse vhdl [...] Me dê um passo a passo do que preciso fazer."
+
+"o caso do shift (2) não deu a mesma coisa. o exp_out = 00001 e o frac_out = 10000000"
+
+**Erro observado na IA:** Ao explicar o funcionamento do 4º estágio do somador (normalização), a IA errou a indexação de bits do vetor sum ao contar a posição do primeiro bit '1' a partir do LSB. No Caso 2 do testbench (subtração 144 - 136 = 8, ou "00001000" em binário), a IA afirmou que sum(4)='1', quando na verdade o bit em '1' estava em sum(3) (posição que vale 2³=8). Isso a levou a calcular um leado errado ("011" em vez de "100"), e consequentemente um exp_out e frac_out esperados incorretos ("00010"/"01000000" em vez dos valores reais "00001"/"10000000"). O erro só foi percebido porque o resultado da simulação real no GTKWave divergiu do valor "esperado" fornecido pela IA.
+
+**A Correção Humana:** Ao rodar a simulação e observar que o resultado real (exp_out="00001", frac_out="10000000") não batia com o valor esperado que havia sido indicado pela IA, o erro foi reportado de volta. A IA então refez o cálculo de indexação de bits com cuidado, confirmando que o valor produzido pelo circuito (e pela simulação) estava correto, e que o erro estava exclusivamente no seu próprio cálculo manual anterior. A correção não envolveu alteração de código VHDL, mas sim a atualização do comentário de valor esperado no testbench e a validação de que o circuito e a simulação já estavam corretos desde o início. Esse episódio reforçou a importância de sempre validar os valores "esperados" fornecidos pela IA contra a simulação real, em vez de aceitá-los como verdade absoluta — o dado empírico (a onda gerada no GTKWave) foi o critério final de verificação, não a explicação textual da ferramenta.
 
 
 ## 6. Contribuição dos participantes
