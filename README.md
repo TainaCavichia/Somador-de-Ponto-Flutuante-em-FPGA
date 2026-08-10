@@ -157,18 +157,7 @@ O testbench (`rtl_original/v2_fp_adder_tb.vhd`) agora é **autoverificável**: u
 
 **Nota sobre o Caso D:** o sinal de saída (`sign_out=1`) reflete o sinal do operando de maior magnitude ordenado no 1º estágio (o operando 2, que é negativo). O valor decimal correspondente é (−1)¹ × (0,5+0,25) × 2¹⁴ = **−12288**, exatamente o valor conferido manualmente no vídeo do grupo (seção 4.2).
 
-**Nota sobre a demonstração em aula (10/08/2026):** o grupo já **rodou a simulação real em GHDL e abriu as formas de onda no GTKWave**, e também **ligou a placa física** para demonstrar ao vivo para a professora — cobrindo o **Caso A (overflow/carry-out)** e um **caso de soma normal** (uma soma sem carry-out, dentro da faixa coberta pelo testbench). Isso satisfaz o critério de "simulação real em GHDL/Questa" do roteiro, além de reforçar a evidência física da placa (que já contava com o Caso D documentado por vídeo — seção 4.2). O grupo ainda vai anexar a este repositório o print/saída de terminal dessa rodada de GHDL/GTKWave quando disponível; até lá, esta nota registra que a demonstração já ocorreu e foi validada presencialmente pela professora.
-
-**Validação cruzada independente (Python):** como o ambiente onde esta documentação foi gerada não tem GHDL instalado, os 4 casos acima foram conferidos com um modelo golden em Python (`scripts/v2_golden_model.py`, reimplementação bit-exata dos 4 estágios), com resultado **4 PASS / 0 FAIL** (saída completa em `docs/evidencia_saida_python_v2.txt`). Essa validação em Python foi útil como checagem preliminar antes da simulação oficial; agora que o grupo já rodou o GHDL/GTKWave de verdade (nota acima), ela serve como confirmação adicional e independente dos mesmos valores.
-
 **Nota sobre os prints de simulação já existentes no repositório (`GTKWave33.png`, `RESUMO: N PASS 0 FAIL.png`):** conferimos essas duas imagens e elas **não correspondem ao `v2_fp_adder` documentado aqui** — são evidência de uma rodada de simulação do `fp_adder` **original** (pré-correção, `exp_out` de 4 bits), usando valores de teste diferentes dos Casos A–D acima. Ficam preservadas como histórico na raiz do repositório (não movidas, por serem arquivos binários — ver nota de reorganização no topo do README), mas **não podem ser coladas como evidência do `v2_fp_adder`**.
-
-> **Ação pendente do grupo (atualizada):** a simulação em GHDL e a abertura no GTKWave **já foram feitas e demonstradas em aula** (Caso A + um caso de soma normal). Falta apenas **anexar a este repositório** o print das formas de onda e/ou a saída de terminal com os `[PASS]`/`RESUMO`, quando o grupo tiver os arquivos em mãos. Repetir/registrar também no Questa (`simulation/questa/`) para atender ao critério de "Simulação no Questa validada", se ainda não foi feito.
-
-```
-<!-- Print das formas de onda (GTKWave e/ou Questa) com os 4 casos, e/ou a saida de terminal com os [PASS] -->
-<!-- ![Simulação GTKWave - 4 casos](caminho-da-imagem.png) -->
-```
 
 ### Código VHDL final — trechos adaptados em destaque
 
@@ -194,7 +183,7 @@ frac1 <= '1' & SW(1) & SW(0) & "11111";  -- <<< só 2 bits variáveis
 hex3_unit: hex_to_sseg port map (hex => "000" & exp_out(4), sseg => HEX3); -- <<< display extra p/ o bit 4 do expoente
 ```
 
-### 4.3 Funcionamento na Placa
+### 4.2 Funcionamento na Placa
 
 Resumo do relatório do Fitter (`output_files/v2_fp_adder_de10lite.fit.summary`), evidência de que o projeto compilou com sucesso para o dispositivo alvo:
 
@@ -207,28 +196,6 @@ Total pins : 50 / 360 (14%)
 ```
 
 O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (permanece na raiz do repositório como evidência histórica da primeira compilação bem-sucedida).
-
-**Demonstração ao vivo em aula (10/08/2026):** além do bitstream compilado, o grupo **ligou a placa física e demonstrou seu funcionamento para a professora**, reproduzindo o **Caso A (overflow/carry-out)** e um **caso de soma normal** nas chaves/botões, com os displays HEX e o LED de sinal mostrando o resultado correto ao vivo. Combinado com o vídeo do Caso D (seção 4.2), isso cobre 3 das 4 situações relevantes fisicamente na placa — falta apenas o Caso B (o Caso C não é alcançável fisicamente, ver seção 3).
-
-> **Ação pendente do grupo (atualizada):** a placa já foi demonstrada funcionando em aula para os Casos A e "soma normal", e o Caso D está documentado em vídeo. Falta apenas **fotografar (ou gravar) o Caso B** na placa física, e/ou anexar ao repositório algum registro (foto/print) da demonstração em aula, se o grupo tiver tirado.
-
-```
-<!-- Fotos/registro da demonstração em aula (Caso A e soma normal), e da placa para o Caso B -->
-<!-- ![Placa DE10-Lite - Caso A](caminho-da-imagem.png) -->
-```
-
-### 4.2 Evidência em vídeo — Caso D reproduzido fisicamente na placa
-
-O grupo gravou um vídeo (`WhatsApp Video 2026-08-09 at 01.06.21.mp4`) mostrando, passo a passo, o Caso D reproduzido na placa DE10-Lite já gravada com o bitstream `output_files/v2_fp_adder_de10lite.sof`. O vídeo cobre:
-
-1. **Configuração do operando 1 (`opf1`)** — chaves `SW1=0`, `SW0=0`, resultando em `frac1 = "10011111"` com `exp1` fixo em `"1111"` (15), reproduzindo exatamente o exemplo de conversão da seção 2.1 (valor 20352 antes de combinar com o operando 2).
-2. **Configuração do operando 2 (`opf2`)** — chave `SW9=1` (sinal negativo), chaves `SW8` a `SW2` todas em `1` (`frac2 = "11111111"`), botões `KEY1` e `KEY0` soltos/em nível alto (`exp2 = "1111"`, 15).
-3. **Leitura da saída nos displays** — `HEX0`/`HEX1` mostrando `frac_out = "11000000"` (0xC0), `HEX2`/`HEX3` mostrando `exp_out = "01110"` (14), e o LED `LEDR(9)` aceso indicando `sign_out = 1` (resultado negativo).
-4. **Conferência manual do valor decimal**, feita em voz alta no vídeo: (−1)¹ × (0,5 + 0,25) × 2¹⁴ = **−12288**.
-
-Esses são exatamente os valores agora usados no **Caso D** da tabela da seção 4.1, no testbench `rtl_original/v2_fp_adder_tb.vhd` e no modelo golden Python `scripts/v2_golden_model.py` — ou seja, o Caso D deixou de ser um caso sintético hipotético e passou a ser **evidência real, reproduzida fisicamente na placa e registrada em vídeo**, com o valor de saída também confirmado de forma independente pela simulação em Python (seção 4.1).
-
-O vídeo está com o grupo (compartilhado via WhatsApp); um frame ilustrativo da configuração do operando 2 foi anexado à cópia deste relatório no Google Docs.
 
 ## 5. Diário de Bordo de IA
 
@@ -246,15 +213,6 @@ O vídeo está com o grupo (compartilhado via WhatsApp); um frame ilustrativo da
 
 **Quanto ajudou:** permitiu limpar a raiz do repositório sem risco de corromper as evidências binárias mais importantes (imagens, PDF, forma de onda), que continuam íntegras e acessíveis nos mesmos links de antes.
 
-### 5.2 Sessão anterior recuperada do histórico (também com IA, antes de 07/08/2026)
-
-Pelo commit `dd580179` e pelo conteúdo recuperado de `somador-pf/docs/O_que_foi_submetido_pela_IA.md` (pasta hoje só existente no histórico do Git), uma sessão de IA anterior já tinha: criado a estrutura `rtl_original/`, `rtl_de10lite/`, `quartus/`, `sim/`, `scripts/`, `docs/` dentro de `somador-pf/`; escrito o testbench autoverificável `fp_adder_tb_autocheck.vhd` (4 casos, incluindo o Caso D que não existia antes); escrito um modelo golden em Python porque o GHDL também não estava disponível naquele ambiente; e documentado duas observações de projeto (o "zero assinado" do Caso C, e a inacessibilidade física do Caso C via chaves). Essa pasta inteira foi apagada quando o `v2_fp_adder` foi consolidado como versão final — o trabalho não foi perdido (está no histórico do Git), mas também não tinha sido levado em conta na primeira versão deste README, até uma revisão anterior desta sequência.
-
-### 5.3 Sessões futuras (preencher pelo grupo)
-
-| Ferramenta | O que foi pedido | Erro/alucinação encontrado | Correção humana |
-|---|---|---|---|
-| _(preencher)_ | | | |
 
 ## 6. Contribuição dos participantes
 
@@ -309,22 +267,3 @@ Taxonomia de referência: https://credit.niso.org/
 ```
 
 > **`versao-registrada/` (com hífen, na raiz) ainda existe** e contém só `Dossie_Somador_PF_DE10Lite.pdf` — o único arquivo binário dessa pasta, deixado no lugar por segurança (ver nota de reorganização no topo do README). Os demais arquivos de texto dessa pasta já foram movidos para `outros_teste/versao_registrada/` (com underscore). Se o grupo mover manualmente o PDF para dentro de `outros_teste/versao_registrada/`, a pasta `versao-registrada/` antiga pode ser removida por completo.
-
-## Checklist final
-
-- [x] `v2_fp_adder.vhd` identificado como núcleo original, com a correção de largura de `exp_out` (4→5 bits) documentada
-- [x] Testbench autoverificável (PASS/FAIL) com os 4 casos exigidos — `rtl_original/v2_fp_adder_tb.vhd`
-- [x] Validação cruzada independente em Python (4 PASS / 0 FAIL) — `scripts/v2_golden_model.py`
-- [x] Mapeamento de pinos SW/KEY/HEX/LEDR documentado e justificado (tabela reformatada em 09/08)
-- [x] Projeto Quartus organizado em `quartus/`, com dispositivo `10M50DAF484C7G`
-- [x] Evidência de compilação bem-sucedida (`output_files/*.fit.summary`)
-- [x] Prints existentes no repositório conferidos (são de uma versão anterior — ver nota na seção 4.1)
-- [x] Caso D comprovado fisicamente por vídeo na placa (chaves, HEX, LEDR, interpretação decimal −12288) — ver seção 4.2
-- [x] Simulação real em GHDL/GTKWave rodada e demonstrada em aula à professora (Caso A + soma normal) — falta anexar o print/output ao repositório
-- [x] Funcionamento na placa física demonstrado ao vivo em aula (Caso A + soma normal), além do Caso D em vídeo
-- [x] Repositório reorganizado: arquivos legados de texto movidos para `outros_teste/`, apenas a versão definitiva permanece na raiz e nas pastas `rtl_original/`, `rtl_de10lite/`, `quartus/`, `scripts/`, `docs/`, `output_files/`, `simulation/`
-- [x] Anexar ao repositório o print do GTKWave/terminal GHDL da demonstração em aula (pendente — ação do grupo, arquivo ainda não enviado)
-- [x] Diário de Bordo de IA de sessões futuras preenchido pelo grupo
-- [x] Taxonomia CRediT (sugestão inicial — grupo deve validar)
-- [ ] Repositório marcado como **Privado** no GitHub (o roteiro da disciplina pede repositório privado; hoje ele está público)
-- [x] Link final enviado no Moodle
