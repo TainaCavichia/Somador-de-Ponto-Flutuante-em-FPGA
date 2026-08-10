@@ -247,25 +247,18 @@ Taxonomia de referência: https://credit.niso.org/
 ```
 .
 ├── README.md                              <- este tutorial (entrega da Etapa 4)
-├── rtl_original/                          <- Etapa 1: núcleo matemático (não alterado, exceto exp_out)
-│   ├── v2_fp_adder.vhd
-│   └── v2_fp_adder_tb.vhd                 <- testbench AUTOVERIFICAVEL, 4 casos (D = video real)
-├── rtl_de10lite/                          <- Etapa 2: adaptação para a placa
+├── rtl_de10lite/                          <- Etapa 1 e 2: núcleo matemático original com as adaptações para o bit adicional no expoente, adaptação para a placa)
 │   ├── v2_fp_adder_de10lite.vhd           <- top-level (SW/KEY -> HEX/LEDR)
 │   └── hex_to_sseg.vhd
+├   └── v2_fp_adder.vhd
+│   └── v2_fp_adder_tb.vhd                 <- testbench AUTOVERIFICAVEL, 4 casos (D = video real)
 ├── quartus/                               <- Etapa 3: projeto Quartus (fonte)
 │   ├── v2_fp_adder_de10lite.qpf
 │   ├── v2_fp_adder_de10lite.qsf
 │   └── de10lite_pin_assignments.csv
-├── scripts/
-│   └── v2_golden_model.py                 <- validacao cruzada independente (Python), Caso D = video real
-├── docs/
-│   └── evidencia_saida_python_v2.txt      <- saida do golden model (4 PASS / 0 FAIL)
 ├── output_files/                          <- evidência: .sof/.pof e relatórios já gerados (primeira compilação bem-sucedida, 07/08/2026)
 ├── simulation/questa/                     <- evidência: saída de simulação Questa
 ├── db/, incremental_db/                   <- cache interno do Quartus (regenerado automaticamente ao recompilar; não precisa mexer)
-│
-├── Wave33.png                          <- (legado, binário, NÃO movido) evidência do fp_adder ORIGINAL (pre-v2); ver nota na seção 4.1
 ├── RESUMO: N PASS 0 FAIL.png              <- (legado, binário, NÃO movido) idem acima
 ├── onda.ghw                               <- (legado, binário, NÃO movido) forma de onda do fp_adder ORIGINAL (pre-v2)
 ├── documentacao_simulacao_de10lite.pdf    <- (legado, binário, NÃO movido) relevância não confirmada pelo grupo
