@@ -12,6 +12,12 @@ Git em commits anteriores a 07/08/2026). NAO substitui a simulacao
 oficial em GHDL/GTKWave exigida pelo roteiro -- ela deve ser rodada pelo
 grupo (ver rtl_original/v2_fp_adder_tb.vhd).
 
+Atualizacao (09/08/2026): o CASO D passou a usar exatamente os valores das
+chaves demonstrados no video da placa fisica enviado pelo grupo (WhatsApp
+Video 2026-08-09), no lugar de um caso sintetico sem deslocamento e sem
+carry-out usado antes. Ver rtl_original/v2_fp_adder_tb.vhd para o mesmo
+caso no testbench VHDL.
+
 Uso: python3 scripts/v2_golden_model.py
 """
 
@@ -84,9 +90,9 @@ cases = [
     ("CASO C (underflow -> zero)",
      0, b("0001"), b("10000000"), 1, b("0001"), b("10000000"),
      None, b("00000"), b("00000000")),  # sign_out documentado a parte
-    ("CASO D (leado=0, sem deslocamento)",
-     0, b("1111"), b("10000000"), 0, b("1110"), b("10000000"),
-     0, b("01111"), b("11000000")),
+    ("CASO D (video na placa fisica, -12288)",
+     0, b("1111"), b("10011111"), 1, b("1111"), b("11111111"),
+     1, b("01110"), b("11000000")),
 ]
 
 n_pass = 0
@@ -113,6 +119,10 @@ for name, s1, e1, f1, s2, e2, f2, exp_sign, exp_exp, exp_frac in cases:
               f"(zero 'assinado' -- mesma particularidade de projeto "
               f"documentada para o fp_adder original; nao afeta o valor "
               f"numerico, pois -0 = 0)")
+    if name.startswith("CASO D"):
+        val = ((-1) ** sign_out) * (0.5 + 0.25) * (2 ** expn)
+        print(f"    interpretacao decimal: (-1)^{sign_out} x (0,5+0,25) x "
+              f"2^{expn} = {val:.0f} (confere com o video)")
     print()
 
 print("=" * 70)
