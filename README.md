@@ -12,7 +12,6 @@ Projeto da disciplina **MCTA024 - Sistemas Digitais** (UFABC) — um circuito ca
 
 ---
 
-*Etapa 1*
 ## 1. Objetivo do Projeto
 
 Este projeto adapta o somador de ponto flutuante simplificado (13 bits) do livro-texto para a placa Terasic DE10-Lite (MAX 10). O objetivo é comprovar matematicamente o algoritmo em simulação, adaptar o hardware para os periféricos físicos disponíveis na placa e demonstrar a síntese lógica e a gravação real do circuito.
@@ -142,7 +141,7 @@ flowchart TB
 
 Dispositivo: **10M50DAF484C7G** (família MAX 10), família selecionada no Quartus Prime 24.1std.
 
-"Foram feitos 4 testes diferentes de operações na placa física, anexados nos arquivos Teste1_FPGA.png, Teste2_FPGA.png no repositório, Teste3_FPGA.png e Teste4_FPGA.png com as fotos dos testes feitos em sala pelo grupo"
+**Foram feitos 4 testes diferentes de operações na placa física, anexados nos arquivos Teste1_FPGA.png, Teste2_FPGA.png, Teste3_FPGA.png e Teste4_FPGA.png, o repositório, com as fotos dos testes feitos em sala pelo grupo**
 
 ## 4. Evidências de Validação
 
@@ -157,7 +156,7 @@ O testbench (`rtl_original/v2_fp_adder_tb.vhd`) agora é **autoverificável**: u
 | **C** | Resultado pequeno demais → vira zero (underflow) | 0 0010 10000001 | 1 0010 10000000 | 0 | 00000 | 00000000 |
 | **D** | Sem deslocamento, sem carry | 0 1001 11001000 | 1 1001 00110010 | 0 | 01001 | 10010110 |
 
-**A validação dos testes foi feita pelo grupo através do GTKWave, fixado na imagem Sim_DE10LITE_GTK.png no repositório"
+**A validação dos testes foi feita pelo grupo através do GTKWave, fixado na imagem Sim_DE10LITE_GTK.png no repositório**
 
 
 ### Código VHDL final — trechos adaptados em destaque
