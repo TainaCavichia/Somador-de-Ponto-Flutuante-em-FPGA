@@ -151,7 +151,7 @@ O testbench (`rtl_original/v2_fp_adder_tb.vhd`) agora é **autoverificável**: u
 | Caso | O que testa | sign1 exp1 frac1 | sign2 exp2 frac2 | sign_out | exp_out | frac_out |
 |---|---|---|---|---|---|---|
 | **A** | Carry-out na adição (por isso `exp_out` precisou de 5 bits) — **demonstrado em aula à professora, em simulação GHDL/GTKWave e na placa física** (ver nota abaixo) | 0 1111 11111111 | 0 1111 11111111 | 0 | 10000 | 11111111 |
-| **B** | Subtração com zeros à esquerda (desloca e conta corretamente) | 0 0101 10100000 | 1 0101 10010000 | 0 | 00010 | 10000000 |
+| **B** | Subtração com zeros à esquerda (desloca e conta corretamente) | 0 0101 10010000 | 1 0101 10001000 | 0 | 00001 | 10000000 |
 | **C** | Resultado pequeno demais → vira zero (underflow) | 0 0001 10000000 | 1 0001 10000000 | 1 (ver nota) | 00000 | 00000000 |
 | **D** | Subtração com sinais diferentes — **valores reais reproduzidos e gravados em vídeo na placa física** (ver seção 4.2) | 0 1111 10011111 | 1 1111 11111111 | 1 (ver nota) | 01110 | 11000000 |
 
