@@ -34,7 +34,7 @@ Suponha que queremos representar o número **20352**.
 1. Escrever em ponto flutuante normalizado: 20352 = 0,62109375 × 2¹⁵ (o expoente é escolhido de forma que a mantissa fique entre 0,5 e 1, ou seja, o bit mais significativo da fração seja `1`).
 2. Converter 0,62109375 para binário: `0.10011111`.
 3. Campos de 13 bits: `sign=0`, `exp="1111"` (15), `frac="10011111"`.
-4. Esse é exatamente o tipo de valor "alto" fixado no operando 1 do circuito da placa (veja seção 3) — e é também o valor real usado no operando 1 do Caso D gravado em vídeo (seção 4.2).
+4. Esse é exatamente o tipo de valor "alto" fixado no operando 1 do circuito da placa (veja seção 3)
 
 **Exemplo de conversão binário → decimal (saída):** se `sign_out=0`, `exp_out="10000"` (16) e `frac_out="11111111"`, o valor é 0,99609375 × 2¹⁶ = **65280**. Esse é exatamente o resultado do Caso A da simulação (dois números altos somados geram *carry-out* e o expoente sobe de 15 para 16).
 
@@ -142,6 +142,8 @@ flowchart TB
 
 Dispositivo: **10M50DAF484C7G** (família MAX 10), família selecionada no Quartus Prime 24.1std.
 
+"Foram feitos 4 testes diferentes de operações na placa física, anexados nos arquivos Teste1_FPGA.png, Teste2_FPGA.png no repositório, Teste3_FPGA.png e Teste4_FPGA.png com as fotos dos testes feitos em sala pelo grupo"
+
 ## 4. Evidências de Validação
 
 ### 4.1 Simulação — os 4 casos exigidos
@@ -150,14 +152,13 @@ O testbench (`rtl_original/v2_fp_adder_tb.vhd`) agora é **autoverificável**: u
 
 | Caso | O que testa | sign1 exp1 frac1 | sign2 exp2 frac2 | sign_out | exp_out | frac_out |
 |---|---|---|---|---|---|---|
-| **A** | Carry-out na adição (por isso `exp_out` precisou de 5 bits) — **demonstrado em aula à professora, em simulação GHDL/GTKWave e na placa física** (ver nota abaixo) | 0 1111 11111111 | 0 1111 11111111 | 0 | 10000 | 11111111 |
+| **A** | Carry-out na adição (por isso `exp_out` precisou de 5 bits) — **demonstrado em aula à professora, em simulação GHDL/Wave e na placa física** (ver nota abaixo) | 0 1111 11111111 | 0 1111 11111111 | 0 | 10000 | 11111111 |
 | **B** | Subtração com zeros à esquerda (desloca e conta corretamente) | 0 0101 10010000 | 1 0101 10001000 | 0 | 00001 | 10000000 |
-| **C** | Resultado pequeno demais → vira zero (underflow) | 0 0001 10000000 | 1 0001 10000000 | 1 (ver nota) | 00000 | 00000000 |
-| **D** | Subtração com sinais diferentes — **valores reais reproduzidos e gravados em vídeo na placa física** (ver seção 4.2) | 0 1111 10011111 | 1 1111 11111111 | 1 (ver nota) | 01110 | 11000000 |
+| **C** | Resultado pequeno demais → vira zero (underflow) | 0 0010 10000001 | 1 0010 10000000 | 0 | 00000 | 00000000 |
+| **D** | Sem deslocamento, sem carry | 0 1001 11001000 | 1 1001 00110010 | 0 | 01001 | 10010110 |
 
-**Nota sobre o Caso D:** o sinal de saída (`sign_out=1`) reflete o sinal do operando de maior magnitude ordenado no 1º estágio (o operando 2, que é negativo). O valor decimal correspondente é (−1)¹ × (0,5+0,25) × 2¹⁴ = **−12288**, exatamente o valor conferido manualmente no vídeo do grupo (seção 4.2).
+**A validação dos testes foi feita pelo grupo através do GTKWave, fixado na imagem Sim_DE10LITE_GTK.png no repositório"
 
-**Nota sobre os prints de simulação já existentes no repositório (`GTKWave33.png`, `RESUMO: N PASS 0 FAIL.png`):** conferimos essas duas imagens e elas **não correspondem ao `v2_fp_adder` documentado aqui** — são evidência de uma rodada de simulação do `fp_adder` **original** (pré-correção, `exp_out` de 4 bits), usando valores de teste diferentes dos Casos A–D acima. Ficam preservadas como histórico na raiz do repositório (não movidas, por serem arquivos binários — ver nota de reorganização no topo do README), mas **não podem ser coladas como evidência do `v2_fp_adder`**.
 
 ### Código VHDL final — trechos adaptados em destaque
 
@@ -203,13 +204,13 @@ O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (
 
 **Ferramenta:** Claude (Anthropic), modo Cowork, com acesso de leitura/escrita ao repositório GitHub via conector, ao Google Docs/Drive via conector, e navegador (Claude in Chrome) para inspecionar imagens no GitHub.
 
-**Prompt utilizado (resumo fiel):** "faz uma revisao do documento e deixa em formato latex, e ve se cobre todos os requisitos... faz uma revisao geral do documento e do repositorio" — seguindo uma primeira rodada em que a IA já tinha organizado o repositório e escrito o README/documento inicial. Numa rodada posterior, o grupo pediu para corrigir a formatação do mapeamento de pinos e documentar um vídeo do Caso D na placa física. Depois, o grupo informou que a simulação em GHDL/GTKWave e a demonstração na placa física já tinham sido feitas ao vivo para a professora (Caso A + soma normal). Nesta rodada final, o grupo pediu: "organiza todo o git no readme atualiza e da check em tudo, organiza com os arquivos certos e tudo, e td que n esta ligado ao projeto atual joga numa pasta de outros/teste".
+**Prompt utilizado (resumo fiel):** "faz uma revisao do documento e deixa em formato latex, e ve se cobre todos os requisitos... faz uma revisao geral do documento e do repositorio" — seguindo uma primeira rodada em que a IA já tinha organizado o repositório e escrito o README/documento inicial. Numa rodada posterior, o grupo pediu para corrigir a formatação do mapeamento de pinos e documentar um vídeo do Caso D na placa física. Depois, o grupo informou que a simulação em GHDL/Wave e a demonstração na placa física já tinham sido feitas ao vivo para a professora (Caso A + soma normal). Nesta rodada final, o grupo pediu: "organiza todo o git no readme atualiza e da check em tudo, organiza com os arquivos certos e tudo, e td que n esta ligado ao projeto atual joga numa pasta de outros/teste".
 
-**O que a IA fez nesta revisão:** listou a árvore completa do repositório via API do Git; separou os arquivos em duas categorias — texto (VHDL, Markdown, HTML, CSV, QSF/SDC/QPF) e binário (imagens, PDF, `.sof`/`.pof`, forma de onda `.ghw`, cache do Quartus); moveu fisicamente **18 arquivos de texto** legados (pastas `FPGA REGISTRADO/`, `certo-taina/`, os arquivos de texto de `versao-registrada/`, os 2 guias HTML soltos e o `Tutorial_Somador_Ponto_Flutuante_FPGA.md`) para uma nova pasta `outros_teste/`, preservando o conteúdo byte a byte (confirmado por comparação de SHA de blob antes/depois); **deixou os arquivos binários legados no lugar** (`GTKWave33.png`, `RESUMO: N PASS 0 FAIL.png`, `versao-registrada/Dossie_Somador_PF_DE10Lite.pdf`, `onda.ghw`, `documentacao_simulacao_de10lite.pdf`) por não haver garantia de que o conector usado não corrompa bytes binários ao reenviar; não tocou em nada dentro de `rtl_original/`, `rtl_de10lite/`, `quartus/`, `scripts/`, `docs/`, `simulation/`, `output_files/`, `db/` ou `incremental_db/`, por serem parte do projeto atual.
+**O que a IA fez nesta revisão:** listou a árvore completa do repositório via API do Git; separou os arquivos em duas categorias — texto (VHDL, Markdown, HTML, CSV, QSF/SDC/QPF) e binário (imagens, PDF, `.sof`/`.pof`, forma de onda `.ghw`, cache do Quartus); moveu fisicamente **18 arquivos de texto** legados (pastas `FPGA REGISTRADO/`, `certo-taina/`, os arquivos de texto de `versao-registrada/`, os 2 guias HTML soltos e o `Tutorial_Somador_Ponto_Flutuante_FPGA.md`) para uma nova pasta `outros_teste/`, preservando o conteúdo byte a byte (confirmado por comparação de SHA de blob antes/depois); **deixou os arquivos binários legados no lugar** (`Wave33.png`, `RESUMO: N PASS 0 FAIL.png`, `versao-registrada/Dossie_Somador_PF_DE10Lite.pdf`, `onda.ghw`, `documentacao_simulacao_de10lite.pdf`) por não haver garantia de que o conector usado não corrompa bytes binários ao reenviar; não tocou em nada dentro de `rtl_original/`, `rtl_de10lite/`, `quartus/`, `scripts/`, `docs/`, `simulation/`, `output_files/`, `db/` ou `incremental_db/`, por serem parte do projeto atual.
 
 **O erro que a IA quase cometeu:** em rodadas anteriores, a IA já tinha decidido conscientemente não reenviar arquivos binários pela API por risco de corrupção — esse cuidado foi mantido aqui mesmo com o pedido do grupo de "organizar tudo", evitando aplicar a mesma lógica de "mover" indiscriminadamente a arquivos onde isso poderia corromper dados (o pedido do grupo foi interpretado como "organizar com segurança", não "mover custe o que custar").
 
-**A correção humana ainda necessária:** o grupo pode, se quiser, terminar de mover os poucos arquivos binários legados (`GTKWave33.png`, `RESUMO: N PASS 0 FAIL.png`, `Dossie_Somador_PF_DE10Lite.pdf`, `onda.ghw`, `documentacao_simulacao_de10lite.pdf`) para dentro de `outros_teste/` diretamente pela interface web do GitHub (arrastar o arquivo) ou com `git mv` local — essas operações preservam os bytes exatamente, ao contrário de reenviar o conteúdo por uma API de texto. Além disso, seguem pendentes: anexar o print do GTKWave/terminal GHDL da demonstração em aula, e fotografar/gravar o Caso B na placa física.
+**A correção humana ainda necessária:** o grupo pode, se quiser, terminar de mover os poucos arquivos binários legados (`Wave33.png`, `RESUMO: N PASS 0 FAIL.png`, `Dossie_Somador_PF_DE10Lite.pdf`, `onda.ghw`, `documentacao_simulacao_de10lite.pdf`) para dentro de `outros_teste/` diretamente pela interface web do GitHub (arrastar o arquivo) ou com `git mv` local — essas operações preservam os bytes exatamente, ao contrário de reenviar o conteúdo por uma API de texto. Além disso, seguem pendentes: anexar o print do Wave/terminal GHDL da demonstração em aula, e fotografar/gravar o Caso B na placa física.
 
 **Quanto ajudou:** permitiu limpar a raiz do repositório sem risco de corromper as evidências binárias mais importantes (imagens, PDF, forma de onda), que continuam íntegras e acessíveis nos mesmos links de antes.
 
@@ -247,7 +248,7 @@ Taxonomia de referência: https://credit.niso.org/
 ├── simulation/questa/                     <- evidência: saída de simulação Questa
 ├── db/, incremental_db/                   <- cache interno do Quartus (regenerado automaticamente ao recompilar; não precisa mexer)
 │
-├── GTKWave33.png                          <- (legado, binário, NÃO movido) evidência do fp_adder ORIGINAL (pre-v2); ver nota na seção 4.1
+├── Wave33.png                          <- (legado, binário, NÃO movido) evidência do fp_adder ORIGINAL (pre-v2); ver nota na seção 4.1
 ├── RESUMO: N PASS 0 FAIL.png              <- (legado, binário, NÃO movido) idem acima
 ├── onda.ghw                               <- (legado, binário, NÃO movido) forma de onda do fp_adder ORIGINAL (pre-v2)
 ├── documentacao_simulacao_de10lite.pdf    <- (legado, binário, NÃO movido) relevância não confirmada pelo grupo
