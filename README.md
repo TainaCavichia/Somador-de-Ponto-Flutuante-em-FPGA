@@ -2,7 +2,9 @@
 
 Projeto da disciplina **MCTA024 - Sistemas Digitais** (UFABC) — um circuito capaz de somar números binários em formato de ponto flutuante simplificado de 13 bits, adaptado do livro-texto *FPGA Prototyping by VHDL Examples* (Pong P. Chu, seção 3.7.4) para a placa **Terasic DE10-Lite (MAX 10)**.
 
-> **Nota sobre esta reorganização (09/08/2026):** o repositório acumulou várias tentativas (pastas `FPGA REGISTRADO/`, `certo-taina/`, uma versão sequencial em `versao-registrada/`, rascunhos de tutorial de commits antigos). Depois de revisar o histórico de commits, identificamos que os arquivos soltos na raiz do repositório enviados nos dois últimos commits (`v2_fp_adder*.vhd`, `*.qsf`, `*.qpf`, `db/`, `output_files/` com `.sof`/`.pof` já gerados) são a **versão definitiva e mais recente** do projeto — a única com bitstream de gravação já compilado com sucesso. Este README documenta essa versão. Os arquivos de código-fonte e do projeto Quartus foram movidos para as pastas `rtl_original/`, `rtl_de10lite/` e `quartus/` (veja [Estrutura do repositório](#estrutura-do-repositório)); nada binário (imagens, `.sof`/`.pof`, formas de onda) foi movido ou apagado, para não correr risco de corromper essas evidências.
+> **Nota sobre esta reorganização (09-10/08/2026):** o repositório acumulou várias tentativas (pastas `FPGA REGISTRADO/`, `certo-taina/`, uma versão sequencial em `versao-registrada/`, e uma pasta `somador-pf/` bem organizada que existiu entre 31/07 e 07/08 e foi **apagada** ao consolidar a versão final). Depois de revisar todo o histórico de commits, identificamos que os arquivos soltos na raiz enviados nos 2 últimos commits (`v2_fp_adder*`, arquivos Quartus, `output_files/` com `.sof`/`.pof` já gerados) são a **versão definitiva** do projeto — a única com bitstream de gravação já compilado com sucesso, e com a correção de um bug de largura de bits do livro-texto (ver seção 3). Este README documenta essa versão. Os arquivos de código-fonte e do projeto Quartus foram movidos para `rtl_original/`, `rtl_de10lite/` e `quartus/`; nada binário (imagens, `.sof`/`.pof`, formas de onda) foi movido ou apagado.
+>
+> **Importante — recuperação de trabalho anterior:** ao investigar a pasta `somador-pf/` apagada (commit `7d1ab90b`), encontramos que uma sessão de IA anterior já tinha criado, para o **`fp_adder` original** (antes da correção que gerou o `v2_fp_adder`): um testbench autoverificável com `assert`/`report` (PASS/FAIL automático), um modelo golden em Python para validação cruzada, e documentação detalhada dos achados de projeto. Esse trabalho foi **recuperado e adaptado** para o `v2_fp_adder` nesta revisão — ver seções 4.1 e 5.1.
 
 # Tutorial: Implementação de Somador Ponto Flutuante na DE10-Lite
 
@@ -10,7 +12,7 @@ Projeto da disciplina **MCTA024 - Sistemas Digitais** (UFABC) — um circuito ca
 
 **Disciplina:** Sistemas Digitais Q2.2026
 
-**Data:** 09/08/2026 (última revisão da documentação)
+**Data:** 10/08/2026 (última revisão da documentação)
 
 ---
 
@@ -40,6 +42,8 @@ Suponha que queremos representar o número **20352**.
 
 **Exemplo de conversão binário → decimal (saída):** se `sign_out=0`, `exp_out="10000"` (16) e `frac_out="11111111"`, o valor é 0,99609375 × 2¹⁶ = **65280**. Esse é exatamente o resultado do Caso A da simulação (dois números altos somados geram *carry-out* e o expoente sobe de 15 para 16).
 
+**Particularidade de projeto (zero "assinado"):** no Caso C (resultado pequeno demais → vira zero), o circuito zera `exp_out` e `frac_out`, mas **não força `sign_out` a `0`** — o sinal de saída continua sendo o do maior operando ordenado no 1º estágio. Quando os dois operandos têm a mesma magnitude, esse "empate" faz `sign_out` sair como `1` (um "zero negativo"). Isso não muda o valor numérico (`-0 = 0`), mas é uma particularidade do design original do livro-texto que vale documentar (ver seção 4.1).
+
 ### 2.2 As 4 etapas do circuito (`v2_fp_adder.vhd`)
 
 ```mermaid
@@ -66,10 +70,12 @@ flowchart LR
 
 | Livro-texto (placa genérica) | `v2_fp_adder_de10lite` (nossa placa) | Por quê |
 |---|---|---|
-| `exp_out` com 4 bits | **`exp_out` com 5 bits** | Bug do livro: se `expb=15` e há carry-out, `expb+1=16` não cabe em 4 bits e estoura silenciosamente. Ampliamos para 5 bits para representar corretamente esse caso (comprovado no Caso A da simulação). |
+| `exp_out` com 4 bits | **`exp_out` com 5 bits** | Bug do livro: se `expb=15` e há carry-out, `expb+1=16` não cabe em 4 bits e estoura silenciosamente. Ampliamos para 5 bits para representar corretamente esse caso (comprovado no Caso A da simulação e da validação Python). |
 | 8 chaves + 4 botões, 4 displays multiplexados no tempo (`disp_mux`, sinal `an`) | 10 chaves (`SW`), 2 botões (`KEY`), **6 displays dedicados (HEX0–HEX5)**, sem multiplexação | A DE10-Lite tem um pino físico por segmento em cada display — não precisamos do `disp_mux` nem do sinal `an` que existiam no livro. |
 | `exp2` usa 4 bits de botões | `exp2 <= "11" & KEY(1) & KEY(0)` — só 2 bits variáveis (dos 2 botões que a placa tem), 2 bits fixos em `"11"` | A DE10-Lite só tem 2 botões (contra 4 na placa do livro); fixamos os 2 bits mais significativos do expoente para não faltar entrada, reduzindo a faixa de expoentes testável mas preservando todos os casos de normalização. |
 | — | `HEX3` mostra apenas o bit mais significativo de `exp_out` (`"000" & exp_out(4)`) | Consequência direta de termos ampliado `exp_out` para 5 bits: precisamos de um display a mais para o bit extra do expoente. |
+
+**Limitação conhecida do mapeamento físico:** como `exp1` é fixo em `"1111"` (15) e o valor mínimo de `exp2` também é `"1111"`... na prática, com `exp1` sempre no máximo, o expoente vencedor do 1º estágio (`expb`) nunca é pequeno — então o Caso C (underflow → zero) **não é alcançável só apertando chaves na placa física**, apenas via testbench. Essa mesma limitação já tinha sido documentada pelo grupo para o mapeamento do `fp_adder` original (ver `somador-pf/docs/validacao_etapa1_etapa2.md`, recuperável no histórico do Git) e se aplica igualmente aqui.
 
 ### Roteamento de operandos (opf1 fixo em valores altos, opf2 variável)
 
@@ -123,21 +129,25 @@ Dispositivo: **10M50DAF484C7G** (família MAX 10), família selecionada no Quart
 
 ## 4. Evidências de Validação
 
-### Simulação — os 4 casos exigidos
+### 4.1 Simulação — os 4 casos exigidos
 
-O testbench (`rtl_original/v2_fp_adder_tb.vhd`) cobre os 3 tipos de normalização descritos no livro-texto mais o caso trivial (soma já normalizada):
+O testbench (`rtl_original/v2_fp_adder_tb.vhd`) agora é **autoverificável**: usa `assert`/`report` para comparar automaticamente a saída do circuito com o valor esperado de cada caso e imprime `[PASS]`/`[FAIL]` no terminal, terminando com um resumo (`RESUMO: N PASS / 0 FAIL`). Esse padrão foi recuperado de um testbench equivalente que o grupo já tinha escrito para o `fp_adder` original (`somador-pf/sim/fp_adder_tb_autocheck.vhd`, removido do repositório em 07/08/2026) e adaptado para a largura de 5 bits do `v2_fp_adder`.
 
 | Caso | O que testa | sign1 exp1 frac1 | sign2 exp2 frac2 | sign_out | exp_out | frac_out |
 |---|---|---|---|---|---|---|
 | **A** | Carry-out na adição (por isso `exp_out` precisou de 5 bits) | 0 1111 11111111 | 0 1111 11111111 | 0 | 10000 | 11111111 |
 | **B** | Subtração com zeros à esquerda (desloca e conta corretamente) | 0 0101 10100000 | 1 0101 10010000 | 0 | 00010 | 10000000 |
-| **C** | Resultado pequeno demais → vira zero (underflow) | 0 0001 10000000 | 1 0001 10000000 | — | 00000 | 00000000 |
+| **C** | Resultado pequeno demais → vira zero (underflow) | 0 0001 10000000 | 1 0001 10000000 | 1 (ver nota) | 00000 | 00000000 |
 | **D** | Soma já normalizada, sem deslocamento e sem carry-out | 0 1111 10000000 | 0 1110 10000000 | 0 | 01111 | 11000000 |
 
-> **Ação pendente do grupo:** rodar `ghdl -a/-e/-r` sobre `rtl_original/v2_fp_adder.vhd` + `rtl_original/v2_fp_adder_tb.vhd`, abrir o `.ghw` no GTKWave, conferir os 4 casos acima na régua de tempo (20 ns por caso) e colar aqui o print com os 4 blocos visíveis. Fazer o mesmo no Questa (`simulation/questa/`) para atender ao critério de "Simulação no Questa validada".
+**Validação cruzada independente (Python):** como o ambiente onde esta documentação foi gerada não tem GHDL instalado, os 4 casos acima foram conferidos com um modelo golden em Python (`scripts/v2_golden_model.py`, reimplementação bit-exata dos 4 estágios), com resultado **4 PASS / 0 FAIL** (saída completa em `docs/evidencia_saida_python_v2.txt`). Essa validação **não substitui** a simulação oficial em GHDL exigida pelo roteiro — apenas confirma que os valores esperados escritos no testbench estão corretos antes do grupo gastar tempo depurando no GHDL/GTKWave.
+
+**Nota sobre os prints de simulação já existentes no repositório (`GTKWave33.png`, `RESUMO: N PASS 0 FAIL.png`):** conferimos essas duas imagens e elas **não correspondem ao `v2_fp_adder` documentado aqui** — são evidência de uma rodada de simulação do `fp_adder` **original** (pré-correção, `exp_out` de 4 bits, sinais `exp1[3:0]`/`exp2[3:0]`/`exp_out[3:0]` visíveis na captura), usando valores de teste diferentes dos Casos A–D acima, contra o testbench autoverificável que existia em `somador-pf/sim/fp_adder_tb_autocheck.vhd` antes de essa pasta ser removida. O terminal mostrado em `RESUMO: N PASS 0 FAIL.png` já confirma exatamente o padrão "4 PASS / 0 FAIL" para aquela versão anterior — é uma evidência real e válida do processo de validação do grupo, só que de uma etapa anterior do projeto. Ficam preservadas como histórico, mas **não podem ser coladas como evidência do `v2_fp_adder`**.
+
+> **Ação pendente do grupo:** rodar `ghdl -a/-e/-r --std=08` sobre `rtl_original/v2_fp_adder.vhd` + `rtl_original/v2_fp_adder_tb.vhd` (comandos completos no cabeçalho do próprio arquivo), copiar a saída de terminal com os `[PASS]`/`RESUMO` (deve dar 4 PASS / 0 FAIL) e abrir o `.ghw` gerado no GTKWave para o print das formas de onda dos 4 casos. Repetir com o Questa (`simulation/questa/`) para atender ao critério de "Simulação no Questa validada".
 
 ```
-<!-- Print das formas de onda (GTKWave e/ou Questa) com os 4 casos -->
+<!-- Print das formas de onda (GTKWave e/ou Questa) com os 4 casos, e/ou a saida de terminal com os [PASS] -->
 <!-- ![Simulação GTKWave - 4 casos](caminho-da-imagem.png) -->
 ```
 
@@ -179,31 +189,34 @@ Total pins : 50 / 360 (14%)
 
 O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (permanece na raiz do repositório como evidência histórica da primeira compilação bem-sucedida).
 
-> **Ação pendente do grupo:** gravar a placa (`Tools → Programmer`, `.sof` acima) e fotografar os 4 casos da tabela da seção anterior reproduzidos fisicamente nas chaves/botões, com os HEX0–HEX3 e o LEDR(9) visíveis.
+> **Ação pendente do grupo:** gravar a placa (`Tools → Programmer`, `.sof` acima) e fotografar os 4 casos da tabela da seção anterior reproduzidos fisicamente nas chaves/botões, com os HEX0–HEX3 e o LEDR(9) visíveis. Lembrar que o Caso C (underflow) não é alcançável fisicamente nas chaves (ver seção 3) — fotografar apenas A, B e D na placa, e citar essa limitação no relatório.
 
 ```
-<!-- Fotos da placa DE10-Lite funcionando, para os 4 casos -->
+<!-- Fotos da placa DE10-Lite funcionando, para os casos A, B e D -->
 <!-- ![Placa DE10-Lite - Caso A](caminho-da-imagem.png) -->
 ```
 
 ## 5. Diário de Bordo de IA
 
-### Sessão registrada nesta reorganização (Claude, via Cowork)
+### 5.1 Sessão registrada nesta revisão (Claude, via Cowork)
 
-**Ferramenta:** Claude (Anthropic), modo Cowork, com acesso de leitura/escrita ao repositório GitHub via conector.
+**Ferramenta:** Claude (Anthropic), modo Cowork, com acesso de leitura/escrita ao repositório GitHub via conector, e navegador (Claude in Chrome) para inspecionar imagens no GitHub.
 
-**Prompt utilizado (resumo fiel do pedido original em português coloquial):**
-> "Preciso fazer uma documentação baseada no projeto [link do GitHub]... os últimos arquivos enviados, ignora os antigos, seria o projeto todo nele, com o opf1 fixo em valores altos e opf2, tem como organizar as pastas e deixar os arquivos com '2 days ago' separados numa pasta que seria o projeto definitivo" + a rubrica de avaliação completa colada na mensagem.
+**Prompt utilizado (resumo fiel):** "faz uma revisao do documento e deixa em formato latex, e ve se cobre todos os requisitos, dentro do repositorio tem prints do gtkwave checa e ve se ta td certo, faz uma revisao geral do documento e do repositorio" — seguindo uma primeira rodada em que a IA já tinha organizado o repositório e escrito o README/documento inicial (prompt dessa rodada anterior registrado abaixo).
 
-**O que a IA fez:** leu o PDF da disciplina e o capítulo do livro-texto enviados, navegou todo o histórico de commits do repositório (via API do GitHub) para identificar, pela data de cada commit, qual conjunto de arquivos era a versão "de 2 dias atrás" (a mais recente) e qual era rascunho antigo/tentativa abandonada de outro integrante; comparou o `v2_fp_adder.vhd` com o algoritmo original do livro e identificou que o campo `exp_out` foi ampliado de 4 para 5 bits (correção de um overflow silencioso do design original); moveu os arquivos-fonte de texto (`.vhd`, `.qsf`, `.qpf`, `.csv`) para uma estrutura de pastas limpa; adicionou um 4º caso de teste ao testbench, que só tinha 3; reescreveu este README seguindo o template da professora.
+**O que a IA fez nesta revisão:** abriu `GTKWave33.png` e `RESUMO: N PASS 0 FAIL.png` diretamente no GitHub (via navegador) para conferir o conteúdo real das imagens, em vez de assumir que estavam corretas; percebeu que os sinais mostrados (`exp_out[3:0]`, valores de teste diferentes) não batiam com o `v2_fp_adder` documentado; investigou o histórico de commits e encontrou que uma pasta `somador-pf/` — com um testbench autoverificável, um modelo golden em Python e documentação de achados de projeto — tinha sido **apagada** em 07/08/2026 (commit `7d1ab90b`, "Delete somador-pf directory") ao consolidar a versão final; recuperou o conteúdo dessa pasta pelo histórico do Git (não pelo estado atual), adaptou o testbench autoverificável e o modelo golden Python para a largura de 5 bits do `v2_fp_adder`, e corrigiu o README para não apresentar os prints antigos como se fossem evidência da versão atual.
 
-**Onde a correção humana ainda é necessária (a IA não pode fazer isto):** a IA não tem como rodar o GHDL/GTKWave/Questa nem gravar a placa física — os prints de simulação e as fotos da placa (marcados como "ação pendente" nas seções 4) precisam ser feitos e conferidos por vocês. A IA também não decidiu sozinha o que descartar: as perguntas sobre qual versão documentar (`v2_fp_adder` vs. `versao-registrada`) e se o repositório deveria ser reorganizado de fato foram respondidas pelo grupo antes de qualquer alteração ser feita, e as mudanças foram enviadas em uma branch separada (`reorganizacao-projeto-definitivo`) com Pull Request, exatamente para que o grupo revise antes de aceitar.
+**O erro que a IA quase cometeu:** na primeira rodada, a IA tinha marcado a simulação como "ação pendente" sem checar se já existiam prints no repositório, e — se o usuário não tivesse pedido explicitamente para checar — a IA poderia ter aceito os prints antigos (`GTKWave33.png`) como evidência válida do `v2_fp_adder` sem notar que eles são de uma versão anterior (4 bits de expoente, valores de teste diferentes). Isso teria sido uma inconsistência grave no relatório final.
 
-**Quanto ajudou:** acelerou bastante a arqueologia do histórico do Git (achar o que era "definitivo" entre ~150 arquivos e 30 commits de 3 pessoas diferentes seria lento manualmente) e a redação do relatório técnico. A responsabilidade de conferir cada afirmação técnica, rodar as simulações reais e validar na placa continua 100% do grupo.
+**A correção humana ainda necessária:** a IA não tem GHDL instalado no seu ambiente (sem root/apt), então não pode rodar a simulação oficial nem gerar um print de GTKWave de verdade para o `v2_fp_adder` — só uma validação cruzada em Python (`scripts/v2_golden_model.py`), que não substitui a simulação exigida pelo roteiro. O grupo precisa rodar `ghdl`/`gtkwave` de verdade (comandos no cabeçalho de `rtl_original/v2_fp_adder_tb.vhd`) e colar a saída real no relatório, além de fotografar a placa fisicamente.
 
-### Sessões anteriores (preencher pelo grupo)
+**Quanto ajudou:** sem revisar o histórico completo do Git (não só o estado atual dos arquivos), a documentação teria citado imagens desatualizadas como evidência da versão errada do circuito — um erro que só apareceu porque o usuário pediu explicitamente para checar os prints existentes.
 
-> Se vocês já usaram ChatGPT/Gemini/Claude em outras etapas (ex.: geração do testbench original, do `hex_to_sseg.vhd`, do guia `Tutorial_Somador_Ponto_Flutuante_FPGA.md`), documentem aqui: qual ferramenta, qual prompt, o que ela errou (se errou) e como vocês corrigiram.
+### 5.2 Sessão anterior recuperada do histórico (também com IA, antes de 07/08/2026)
+
+Pelo commit `dd580179` ("Adiciona guia passo a passo completo... e documento explicando arquivo por arquivo tudo que foi submetido com apoio de IA") e pelo conteúdo recuperado de `somador-pf/docs/O_que_foi_submetido_pela_IA.md`, uma sessão de IA anterior já tinha: criado a estrutura `rtl_original/`, `rtl_de10lite/`, `quartus/`, `sim/`, `scripts/`, `docs/` dentro de `somador-pf/`; escrito o testbench autoverificável `fp_adder_tb_autocheck.vhd` (4 casos, incluindo o Caso D que não existia antes); escrito um modelo golden em Python porque o GHDL também não estava disponível naquele ambiente; e documentado duas observações de projeto (o "zero assinado" do Caso C, e a inacessibilidade física do Caso C via chaves). Essa pasta inteira foi apagada quando o `v2_fp_adder` foi consolidado como versão final — o trabalho não foi perdido (está no histórico do Git), mas também não tinha sido levado em conta na primeira versão deste README, até esta revisão.
+
+### 5.3 Sessões futuras (preencher pelo grupo)
 
 | Ferramenta | O que foi pedido | Erro/alucinação encontrado | Correção humana |
 |---|---|---|---|
@@ -213,7 +226,7 @@ O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (
 
 Sugestão de distribuição usando a Taxonomia CRediT, baseada na atividade observada no histórico de commits do repositório — **ajustem conforme a divisão real de trabalho do grupo**:
 
-- **Juliana Tiemi Ito** — Administração do projeto, Curadoria de dados, Desenvolvimento de software (testbenches, script de validação cruzada em Python), Validação, Redação (documentação e README).
+- **Juliana Tiemi Ito** — Administração do projeto, Curadoria de dados, Desenvolvimento de software (testbenches, scripts de validação cruzada em Python), Validação, Redação (documentação e README).
 - **Taina Cavichia** — Desenvolvimento de software (upload da versão final do projeto Quartus: `v2_fp_adder`, arquivos de síntese), Recursos, Supervisão.
 - **Lucas Gabriel Cavalheiro Rodrigues** — Desenvolvimento de software (configuração de driver USB-Blaster para gravação em Linux, exploração inicial de hardware), Validação.
 
@@ -226,7 +239,7 @@ Taxonomia de referência: https://credit.niso.org/
 ├── README.md                          <- este tutorial (entrega da Etapa 4)
 ├── rtl_original/                      <- Etapa 1: núcleo matemático (não alterado, exceto exp_out)
 │   ├── v2_fp_adder.vhd
-│   └── v2_fp_adder_tb.vhd             <- testbench com os 4 casos exigidos
+│   └── v2_fp_adder_tb.vhd             <- testbench AUTOVERIFICAVEL, 4 casos
 ├── rtl_de10lite/                      <- Etapa 2: adaptação para a placa
 │   ├── v2_fp_adder_de10lite.vhd       <- top-level (SW/KEY -> HEX/LEDR)
 │   └── hex_to_sseg.vhd
@@ -234,9 +247,13 @@ Taxonomia de referência: https://credit.niso.org/
 │   ├── v2_fp_adder_de10lite.qpf
 │   ├── v2_fp_adder_de10lite.qsf
 │   └── de10lite_pin_assignments.csv
+├── scripts/
+│   └── v2_golden_model.py             <- validacao cruzada independente (Python)
+├── docs/
+│   └── evidencia_saida_python_v2.txt  <- saida do golden model (4 PASS / 0 FAIL)
 ├── output_files/                      <- evidência: .sof/.pof e relatórios já gerados (primeira compilação bem-sucedida, 07/08/2026)
 ├── simulation/questa/                 <- evidência: saída de simulação Questa
-├── onda.ghw, GTKWave33.png, "RESUMO: N PASS 0 FAIL.png"  <- evidências de simulação GHDL/GTKWave
+├── onda.ghw, GTKWave33.png, "RESUMO: N PASS 0 FAIL.png"  <- evidências do fp_adder ORIGINAL (pre-v2); ver nota na secao 4.1
 ├── documentacao_simulacao_de10lite.pdf
 ├── Tutorial_Somador_Ponto_Flutuante_FPGA.md   <- guia complementar (instalação de ferramentas, passo a passo)
 ├── db/, incremental_db/, *.bak, work-obj93.cf <- cache interno do Quartus/GHDL (regenerado automaticamente ao recompilar; não precisa mexer)
@@ -245,18 +262,21 @@ Taxonomia de referência: https://credit.niso.org/
     └── versao-registrada/                 <- versão alternativa (sequencial/com clock), não adotada como final
 ```
 
-> As pastas listadas em "legado" **não foram fisicamente movidas** nesta reorganização (para não arriscar corromper os arquivos binários que contêm — PDFs, bitstreams, imagens). Elas continuam nos mesmos caminhos do repositório; esta tabela serve apenas para deixar claro que não fazem parte do projeto definitivo.
+> As pastas listadas em "legado" (e a `somador-pf/` mencionada nas seções 4 e 5, que já não existe no estado atual do repositório — só no histórico do Git) **não foram fisicamente movidas ou restauradas** nesta reorganização, para não arriscar corromper arquivos binários. Elas continuam nos mesmos caminhos (ou apenas no histórico); esta tabela serve para deixar claro que não fazem parte do projeto definitivo.
 
 ## Checklist final
 
 - [x] `v2_fp_adder.vhd` identificado como núcleo original, com a correção de largura de `exp_out` (4→5 bits) documentada
-- [x] Testbench com os 4 casos exigidos (carry-out, deslocamento, underflow, soma trivial) — `rtl_original/v2_fp_adder_tb.vhd`
+- [x] Testbench autoverificável (PASS/FAIL) com os 4 casos exigidos — `rtl_original/v2_fp_adder_tb.vhd`
+- [x] Validação cruzada independente em Python (4 PASS / 0 FAIL) — `scripts/v2_golden_model.py`
 - [x] Mapeamento de pinos SW/KEY/HEX/LEDR documentado e justificado
 - [x] Projeto Quartus organizado em `quartus/`, com dispositivo `10M50DAF484C7G`
 - [x] Evidência de compilação bem-sucedida (`output_files/*.fit.summary`)
-- [ ] Print do GTKWave/Questa com os 4 casos (pendente — ação do grupo)
-- [ ] Fotos da placa gravada e testada fisicamente para os 4 casos (pendente — ação do grupo)
-- [ ] Diário de Bordo de IA das sessões anteriores preenchido pelo grupo
+- [x] Prints existentes no repositório conferidos (são de uma versão anterior — ver nota na seção 4.1)
+- [ ] Rodar o GHDL de verdade sobre `v2_fp_adder_tb.vhd` e colar a saída `[PASS]`/`RESUMO` real (pendente — ação do grupo)
+- [ ] Print do GTKWave/Questa com os 4 casos do `v2_fp_adder` (pendente — ação do grupo)
+- [ ] Fotos da placa gravada e testada fisicamente para os casos A, B e D (pendente — ação do grupo)
+- [ ] Diário de Bordo de IA de sessões futuras preenchido pelo grupo
 - [x] Taxonomia CRediT (sugestão inicial — grupo deve validar)
 - [ ] Repositório marcado como **Privado** no GitHub (o roteiro da disciplina pede repositório privado; hoje ele está público)
 - [ ] Link final enviado no Moodle
