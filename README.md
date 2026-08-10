@@ -201,19 +201,10 @@ O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (
 
 ### 5.1 Sessão registrada nesta revisão (Claude, via Cowork)
 
-**Ferramenta:** Claude (Anthropic), modo Cowork, com acesso de leitura/escrita ao repositório GitHub via conector, ao Google Docs/Drive via conector, e navegador (Claude in Chrome) para inspecionar imagens no GitHub.
+**Ferramenta:** Claude (Anthropic
 
-**Prompt utilizado (resumo fiel):** "faz uma revisao do documento e deixa em formato latex, e ve se cobre todos os requisitos... faz uma revisao geral do documento e do repositorio" — seguindo uma primeira rodada em que a IA já tinha organizado o repositório e escrito o README/documento inicial. Numa rodada posterior, o grupo pediu para corrigir a formatação do mapeamento de pinos e documentar um vídeo do Caso D na placa física. Depois, o grupo informou que a simulação em GHDL/Wave e a demonstração na placa física já tinham sido feitas ao vivo para a professora (Caso A + soma normal). Nesta rodada final, o grupo pediu: "organiza todo o git no readme atualiza e da check em tudo, organiza com os arquivos certos e tudo, e td que n esta ligado ao projeto atual joga numa pasta de outros/teste".
 
-**O que a IA fez nesta revisão:** listou a árvore completa do repositório via API do Git; separou os arquivos em duas categorias — texto (VHDL, Markdown, HTML, CSV, QSF/SDC/QPF) e binário (imagens, PDF, `.sof`/`.pof`, forma de onda `.ghw`, cache do Quartus); moveu fisicamente **18 arquivos de texto** legados (pastas `FPGA REGISTRADO/`, `certo-taina/`, os arquivos de texto de `versao-registrada/`, os 2 guias HTML soltos e o `Tutorial_Somador_Ponto_Flutuante_FPGA.md`) para uma nova pasta `outros_teste/`, preservando o conteúdo byte a byte (confirmado por comparação de SHA de blob antes/depois); **deixou os arquivos binários legados no lugar** (`Wave33.png`, `RESUMO: N PASS 0 FAIL.png`, `versao-registrada/Dossie_Somador_PF_DE10Lite.pdf`, `onda.ghw`, `documentacao_simulacao_de10lite.pdf`) por não haver garantia de que o conector usado não corrompa bytes binários ao reenviar; não tocou em nada dentro de `rtl_original/`, `rtl_de10lite/`, `quartus/`, `scripts/`, `docs/`, `simulation/`, `output_files/`, `db/` ou `incremental_db/`, por serem parte do projeto atual.
-
-**O erro que a IA quase cometeu:** em rodadas anteriores, a IA já tinha decidido conscientemente não reenviar arquivos binários pela API por risco de corrupção — esse cuidado foi mantido aqui mesmo com o pedido do grupo de "organizar tudo", evitando aplicar a mesma lógica de "mover" indiscriminadamente a arquivos onde isso poderia corromper dados (o pedido do grupo foi interpretado como "organizar com segurança", não "mover custe o que custar").
-
-**A correção humana ainda necessária:** o grupo pode, se quiser, terminar de mover os poucos arquivos binários legados (`Wave33.png`, `RESUMO: N PASS 0 FAIL.png`, `Dossie_Somador_PF_DE10Lite.pdf`, `onda.ghw`, `documentacao_simulacao_de10lite.pdf`) para dentro de `outros_teste/` diretamente pela interface web do GitHub (arrastar o arquivo) ou com `git mv` local — essas operações preservam os bytes exatamente, ao contrário de reenviar o conteúdo por uma API de texto. Além disso, seguem pendentes: anexar o print do Wave/terminal GHDL da demonstração em aula, e fotografar/gravar o Caso B na placa física.
-
-**Quanto ajudou:** permitiu limpar a raiz do repositório sem risco de corromper as evidências binárias mais importantes (imagens, PDF, forma de onda), que continuam íntegras e acessíveis nos mesmos links de antes.
-
-**Outras contribuições:** Utilizamos o Claude para auxiliar no diagnóstico de erros de síntese, na geração de casos de teste (físicos e em simulação) e na criação de um testbench VHDL para observar o 4º estágio (normalização) do somador de ponto flutuante. Abaixo está a análise crítica do uso da ferramenta.
+**Contribuições:** Utilizamos o Claude para auxiliar no diagnóstico de erros de síntese, na geração de casos de teste (físicos e em simulação) e na criação de um testbench VHDL para observar o 4º estágio (normalização) do somador de ponto flutuante. Abaixo está a análise crítica do uso da ferramenta.
 
 *Prompts Utilizados:*
 
@@ -242,39 +233,6 @@ Distribuição usando a Taxonomia CRediT:
 
 Taxonomia de referência: https://credit.niso.org/
 
-## Estrutura do repositório
-
-```
-.
-├── README.md                              <- este tutorial (entrega da Etapa 4)
-├── rtl_de10lite/                          <- Etapa 1 e 2: núcleo matemático original com as adaptações para o bit adicional no expoente, adaptação para a placa)
-│   ├── v2_fp_adder_de10lite.vhd           <- top-level (SW/KEY -> HEX/LEDR)
-│   └── hex_to_sseg.vhd
-├   └── v2_fp_adder.vhd
-│   └── v2_fp_adder_tb.vhd                 <- testbench AUTOVERIFICAVEL, 4 casos (D = video real)
-├── quartus/                               <- Etapa 3: projeto Quartus (fonte)
-│   ├── v2_fp_adder_de10lite.qpf
-│   ├── v2_fp_adder_de10lite.qsf
-│   └── de10lite_pin_assignments.csv
-├── output_files/                          <- evidência: .sof/.pof e relatórios já gerados (primeira compilação bem-sucedida, 07/08/2026)
-├── simulation/questa/                     <- evidência: saída de simulação Questa
-├── db/, incremental_db/                   <- cache interno do Quartus (regenerado automaticamente ao recompilar; não precisa mexer)
-├── RESUMO: N PASS 0 FAIL.png              <- (legado, binário, NÃO movido) idem acima
-├── onda.ghw                               <- (legado, binário, NÃO movido) forma de onda do fp_adder ORIGINAL (pre-v2)
-├── documentacao_simulacao_de10lite.pdf    <- (legado, binário, NÃO movido) relevância não confirmada pelo grupo
-│
-└── outros_teste/                          <- tudo que NÃO é a versão definitiva, reorganizado em 10/08/2026
-    ├── FPGA_COM_REGISTRADOR               <- arquivo solto de 1 byte (resquício, sem conteúdo relevante)
-    ├── FPGA_REGISTRADO/                   <- tentativa anterior de outro integrante (texto: .vhd, .md, .csv, .rules)
-    ├── certo_taina/db/add_sub_39i.tdf     <- resquício isolado de outra tentativa
-    ├── Somador_Ponto_Flutuante_DE10Lite_Explicado.html   <- guia HTML solto, não referenciado pelo README
-    ├── Somador_Ponto_Flutuante_PARA_LEIGOS.html          <- idem
-    ├── Tutorial_Somador_Ponto_Flutuante_FPGA.md          <- guia complementar antigo, não referenciado pelo README
-    └── versao_registrada/                 <- versão alternativa (sequencial/com clock), não adotada como final
-        ├── LEIA-ME.md
-        ├── somador_pf_de10lite_seq.qsf
-        ├── somador_pf_de10lite_seq.sdc
-        └── tb_somador_pf_de10lite_seq.vhd
 ```
 
 > **`versao-registrada/` (com hífen, na raiz) ainda existe** e contém só `Dossie_Somador_PF_DE10Lite.pdf` — o único arquivo binário dessa pasta, deixado no lugar por segurança (ver nota de reorganização no topo do README). Os demais arquivos de texto dessa pasta já foram movidos para `outros_teste/versao_registrada/` (com underscore). Se o grupo mover manualmente o PDF para dentro de `outros_teste/versao_registrada/`, a pasta `versao-registrada/` antiga pode ser removida por completo.
