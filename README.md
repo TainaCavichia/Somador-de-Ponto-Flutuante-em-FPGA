@@ -213,6 +213,10 @@ O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (
 
 **Quanto ajudou:** permitiu limpar a raiz do repositório sem risco de corromper as evidências binárias mais importantes (imagens, PDF, forma de onda), que continuam íntegras e acessíveis nos mesmos links de antes.
 
+**Outras contribuições:** Usamos IA generativa para criar um fluxograma organizado de cada etapa do projeto, baseado no arquivo modelo e resumos do que foi feito pelo grupo
+
+Também usamos a IA para gerar casos de testes para usar como exercícios de verificação na placa, após a implementação do código que contém a adaptação
+
 
 ## 6. Contribuição dos participantes
 
