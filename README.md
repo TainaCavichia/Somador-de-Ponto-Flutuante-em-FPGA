@@ -156,7 +156,7 @@ O testbench (`rtl_original/v2_fp_adder_tb.vhd`) agora é **autoverificável**: u
 | **C** | Resultado pequeno demais → vira zero (underflow) | 0 0010 10000001 | 1 0010 10000000 | 0 | 00000 | 00000000 |
 | **D** | Sem deslocamento, sem carry | 0 1001 11001000 | 1 1001 00110010 | 0 | 01001 | 10010110 |
 
-**A validação dos testes foi feita pelo grupo através do GTKWave, fixado na imagem Sim_DE10LITE_GTK.png no repositório**
+**A validação dos testes foi feita pelo grupo através do GTKWave, fixado na imagem `Sim_DE10LITE_GTK.png` no repositório**
 
 
 ### Código VHDL final — trechos adaptados em destaque
