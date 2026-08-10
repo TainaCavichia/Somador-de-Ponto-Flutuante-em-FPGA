@@ -1,0 +1,173 @@
+# =====================================================================
+#  somador_pf_de10lite_seq.qsf
+#  Atribuicao de pinos - Terasic DE10-Lite (Intel MAX 10, 10M50DAF484C7G)
+#  MCTA024 - Sistemas Digitais / UFABC   -   VERSAO REGISTRADA
+#
+#  DIFERENCA EM RELACAO A VERSAO COMBINACIONAL: esta versao tem logica
+#  sequencial (os registradores dos operandos), portanto precisa do
+#  CLOCK. O pino MAX10_CLK1_50 (PIN_P11) e obrigatorio aqui.
+#
+#  COMO USAR
+#  ---------
+#  1. Quartus > File > New Project Wizard
+#       - nome do projeto e Top-Level Entity: somador_pf_de10lite_seq
+#       - Family: MAX 10 (DA/DF/DC/DE/DT/SA/SC/SE/ST)
+#       - Device:  10M50DAF484C7G
+#  2. Adicione SOMENTE o arquivo somador_pf_de10lite_seq.vhd
+#       (ele contem os quatro blocos, nao precisa de mais nada).
+#  3. Cole o conteudo deste arquivo no fim do <projeto>.qsf
+#       (ou Assignments > Import Assignments).
+#  4. Adicione tambem o somador_pf_de10lite_seq.sdc ao projeto
+#       (Project > Add/Remove Files in Project). Sem ele o Quartus
+#       reclama de clock nao restringido.
+#  5. Processing > Start Compilation.
+#  6. Tools > Programmer > Hardware Setup: USB-Blaster > Start.
+#
+#  LEMBRETE: os displays da DE10-Lite tem 8 pinos cada (indices 0..6 =
+#  segmentos a..g, indice 7 = ponto decimal) e sao ATIVOS EM NIVEL
+#  BAIXO. Todos os seis estao dirigidos no VHDL.
+# =====================================================================
+
+set_global_assignment -name FAMILY "MAX 10"
+set_global_assignment -name DEVICE 10M50DAF484C7G
+set_global_assignment -name TOP_LEVEL_ENTITY somador_pf_de10lite_seq
+set_global_assignment -name VHDL_FILE somador_pf_de10lite_seq.vhd
+set_global_assignment -name SDC_FILE somador_pf_de10lite_seq.sdc
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+
+# ---------------------------------------------------------------------
+# CLOCK - obrigatorio nesta versao (50 MHz)
+# ---------------------------------------------------------------------
+set_location_assignment PIN_P11 -to MAX10_CLK1_50
+
+# ---------------------------------------------------------------------
+# SW - chaves deslizantes (para cima = '1')
+#   SW9 : QUAL NUMERO  (0 = numero 1, 1 = numero 2)
+#   SW8 : QUAL CAMPO   (0 = sinal+expoente, 1 = fracao)
+#   SW7..SW0 : DADOS
+#              se SW8=1 -> fracao de 8 bits (SW7 e o MSB)
+#              se SW8=0 -> SW4 = sinal, SW3..SW0 = expoente
+#                          (SW7..SW5 ignoradas nesta fase)
+# ---------------------------------------------------------------------
+set_location_assignment PIN_C10 -to SW[0]
+set_location_assignment PIN_C11 -to SW[1]
+set_location_assignment PIN_D12 -to SW[2]
+set_location_assignment PIN_C12 -to SW[3]
+set_location_assignment PIN_A12 -to SW[4]
+set_location_assignment PIN_B12 -to SW[5]
+set_location_assignment PIN_A13 -to SW[6]
+set_location_assignment PIN_A14 -to SW[7]
+set_location_assignment PIN_B14 -to SW[8]
+set_location_assignment PIN_F15 -to SW[9]
+
+# ---------------------------------------------------------------------
+# KEY - botoes (ATIVOS EM BAIXO: solto = '1', pressionado = '0')
+#   KEY0 : CARREGA o campo selecionado por SW9/SW8 (1 clique = 1 carga)
+#   KEY1 : segurar = MODO CONFERENCIA (mostra o operando guardado)
+# ---------------------------------------------------------------------
+set_location_assignment PIN_B8 -to KEY[0]
+set_location_assignment PIN_A7 -to KEY[1]
+
+# ---------------------------------------------------------------------
+# LEDR - LEDs vermelhos (ativos em ALTO)
+#   LEDR9    : sinal do valor mostrado (aceso = negativo)
+#   LEDR8    : uma das entradas foi ajustada pelo pre-normalizador
+#   LEDR7..0 : a fracao mostrada, em binario
+#              (LEDR7 aceso comprova normalizacao; todos apagados = zero)
+# ---------------------------------------------------------------------
+set_location_assignment PIN_A8  -to LEDR[0]
+set_location_assignment PIN_A9  -to LEDR[1]
+set_location_assignment PIN_A10 -to LEDR[2]
+set_location_assignment PIN_B10 -to LEDR[3]
+set_location_assignment PIN_D13 -to LEDR[4]
+set_location_assignment PIN_C13 -to LEDR[5]
+set_location_assignment PIN_E14 -to LEDR[6]
+set_location_assignment PIN_D14 -to LEDR[7]
+set_location_assignment PIN_A11 -to LEDR[8]
+set_location_assignment PIN_B11 -to LEDR[9]
+
+# ---------------------------------------------------------------------
+# HEX0 - expoente do valor mostrado
+# ---------------------------------------------------------------------
+set_location_assignment PIN_C14 -to HEX0[0]
+set_location_assignment PIN_E15 -to HEX0[1]
+set_location_assignment PIN_C15 -to HEX0[2]
+set_location_assignment PIN_C16 -to HEX0[3]
+set_location_assignment PIN_E16 -to HEX0[4]
+set_location_assignment PIN_D17 -to HEX0[5]
+set_location_assignment PIN_C17 -to HEX0[6]
+set_location_assignment PIN_D15 -to HEX0[7]
+
+# ---------------------------------------------------------------------
+# HEX1 - fracao, nibble BAIXO (+ ponto decimal aceso)
+# ---------------------------------------------------------------------
+set_location_assignment PIN_C18 -to HEX1[0]
+set_location_assignment PIN_D18 -to HEX1[1]
+set_location_assignment PIN_E18 -to HEX1[2]
+set_location_assignment PIN_B16 -to HEX1[3]
+set_location_assignment PIN_A17 -to HEX1[4]
+set_location_assignment PIN_A18 -to HEX1[5]
+set_location_assignment PIN_B17 -to HEX1[6]
+set_location_assignment PIN_A16 -to HEX1[7]
+
+# ---------------------------------------------------------------------
+# HEX2 - fracao, nibble ALTO
+# ---------------------------------------------------------------------
+set_location_assignment PIN_B20 -to HEX2[0]
+set_location_assignment PIN_A20 -to HEX2[1]
+set_location_assignment PIN_B19 -to HEX2[2]
+set_location_assignment PIN_A21 -to HEX2[3]
+set_location_assignment PIN_B21 -to HEX2[4]
+set_location_assignment PIN_C22 -to HEX2[5]
+set_location_assignment PIN_B22 -to HEX2[6]
+set_location_assignment PIN_A19 -to HEX2[7]
+
+# ---------------------------------------------------------------------
+# HEX3 - sinal ("-" quando negativo, apagado quando positivo)
+# ---------------------------------------------------------------------
+set_location_assignment PIN_F21 -to HEX3[0]
+set_location_assignment PIN_E22 -to HEX3[1]
+set_location_assignment PIN_E21 -to HEX3[2]
+set_location_assignment PIN_C19 -to HEX3[3]
+set_location_assignment PIN_C20 -to HEX3[4]
+set_location_assignment PIN_D19 -to HEX3[5]
+set_location_assignment PIN_E17 -to HEX3[6]
+set_location_assignment PIN_D22 -to HEX3[7]
+
+# ---------------------------------------------------------------------
+# HEX4 - letra "C" no modo conferencia, apagado no modo resultado
+# ---------------------------------------------------------------------
+set_location_assignment PIN_F18 -to HEX4[0]
+set_location_assignment PIN_E20 -to HEX4[1]
+set_location_assignment PIN_E19 -to HEX4[2]
+set_location_assignment PIN_J18 -to HEX4[3]
+set_location_assignment PIN_H19 -to HEX4[4]
+set_location_assignment PIN_F19 -to HEX4[5]
+set_location_assignment PIN_F20 -to HEX4[6]
+set_location_assignment PIN_F17 -to HEX4[7]
+
+# ---------------------------------------------------------------------
+# HEX5 - fase atual de digitacao (1, 2, 3 ou 4)
+# ---------------------------------------------------------------------
+set_location_assignment PIN_J20 -to HEX5[0]
+set_location_assignment PIN_K20 -to HEX5[1]
+set_location_assignment PIN_L18 -to HEX5[2]
+set_location_assignment PIN_N18 -to HEX5[3]
+set_location_assignment PIN_M20 -to HEX5[4]
+set_location_assignment PIN_N19 -to HEX5[5]
+set_location_assignment PIN_N20 -to HEX5[6]
+set_location_assignment PIN_L19 -to HEX5[7]
+
+# ---------------------------------------------------------------------
+# Padrao de I/O - bancos de 3.3 V da DE10-Lite
+# ---------------------------------------------------------------------
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to MAX10_CLK1_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to KEY[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LEDR[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HEX0[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HEX1[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HEX2[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HEX3[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HEX4[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HEX5[*]
