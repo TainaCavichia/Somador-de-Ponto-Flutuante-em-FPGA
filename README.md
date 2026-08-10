@@ -141,7 +141,7 @@ flowchart TB
 
 Dispositivo: **10M50DAF484C7G** (família MAX 10), família selecionada no Quartus Prime 24.1std.
 
-**Foram feitos 4 testes diferentes de operações na placa física, anexados nos arquivos Teste1_FPGA.png, Teste2_FPGA.png, Teste3_FPGA.png e Teste4_FPGA.png, o repositório, com as fotos dos testes feitos em sala pelo grupo**
+**Foram feitos 4 testes diferentes de operações na placa física, anexados nos arquivos `Teste1_FPGA.png`, `Teste2_FPGA.png`, `Teste3_FPGA.png` e `Teste4_FPGA.png`, o repositório, com as fotos dos testes feitos em sala pelo grupo**
 
 ## 4. Evidências de Validação
 
@@ -216,7 +216,7 @@ O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (
 
 ## 6. Contribuição dos participantes
 
-Sugestão de distribuição usando a Taxonomia CRediT, baseada na atividade observada no histórico de commits do repositório — **ajustem conforme a divisão real de trabalho do grupo**:
+Distribuição usando a Taxonomia CRediT:
 
 - **Juliana Tiemi Ito** — Administração do projeto, Curadoria de dados, Desenvolvimento de software (testbenches, scripts de validação cruzada em Python), Validação, Redação (documentação e README).
 - **Taina Cavichia** — Desenvolvimento de software (upload da versão final do projeto Quartus: `v2_fp_adder`, arquivos de síntese), Recursos, Supervisão.
