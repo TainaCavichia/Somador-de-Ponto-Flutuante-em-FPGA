@@ -5,6 +5,8 @@ Projeto da disciplina **MCTA024 - Sistemas Digitais** (UFABC) — um circuito ca
 > **Nota sobre esta reorganização (09-10/08/2026):** o repositório acumulou várias tentativas (pastas `FPGA REGISTRADO/`, `certo-taina/`, uma versão sequencial em `versao-registrada/`, e uma pasta `somador-pf/` bem organizada que existiu entre 31/07 e 07/08 e foi **apagada** ao consolidar a versão final). Depois de revisar todo o histórico de commits, identificamos que os arquivos soltos na raiz enviados nos 2 últimos commits (`v2_fp_adder*`, arquivos Quartus, `output_files/` com `.sof`/`.pof` já gerados) são a **versão definitiva** do projeto — a única com bitstream de gravação já compilado com sucesso, e com a correção de um bug de largura de bits do livro-texto (ver seção 3). Este README documenta essa versão. Os arquivos de código-fonte e do projeto Quartus foram movidos para `rtl_original/`, `rtl_de10lite/` e `quartus/`; nada binário (imagens, `.sof`/`.pof`, formas de onda) foi movido ou apagado.
 >
 > **Importante — recuperação de trabalho anterior:** ao investigar a pasta `somador-pf/` apagada (commit `7d1ab90b`), encontramos que uma sessão de IA anterior já tinha criado, para o **`fp_adder` original** (antes da correção que gerou o `v2_fp_adder`): um testbench autoverificável com `assert`/`report` (PASS/FAIL automático), um modelo golden em Python para validação cruzada, e documentação detalhada dos achados de projeto. Esse trabalho foi **recuperado e adaptado** para o `v2_fp_adder` nesta revisão — ver seções 4.1 e 5.1.
+>
+> **Atualização (09/08/2026, à noite) — evidência em vídeo do funcionamento na placa física:** o grupo gravou um vídeo mostrando, passo a passo, as chaves/botões configurados na placa DE10-Lite, o resultado nos displays HEX e no LED de sinal, e a conferência manual do valor decimal obtido. Esse vídeo comprova fisicamente o **Caso D** do testbench, que foi **atualizado para usar exatamente os mesmos valores mostrados no vídeo** (antes era um caso sintético hipotético; agora é evidência real). Ver detalhes na seção 4.2.
 
 # Tutorial: Implementação de Somador Ponto Flutuante na DE10-Lite
 
@@ -38,7 +40,7 @@ Suponha que queremos representar o número **20352**.
 1. Escrever em ponto flutuante normalizado: 20352 = 0,62109375 × 2¹⁵ (o expoente é escolhido de forma que a mantissa fique entre 0,5 e 1, ou seja, o bit mais significativo da fração seja `1`).
 2. Converter 0,62109375 para binário: `0.10011111`.
 3. Campos de 13 bits: `sign=0`, `exp="1111"` (15), `frac="10011111"`.
-4. Esse é exatamente o tipo de valor "alto" fixado no operando 1 do circuito da placa (veja seção 3).
+4. Esse é exatamente o tipo de valor "alto" fixado no operando 1 do circuito da placa (veja seção 3) — e é também o valor real usado no operando 1 do Caso D gravado em vídeo (seção 4.2).
 
 **Exemplo de conversão binário → decimal (saída):** se `sign_out=0`, `exp_out="10000"` (16) e `frac_out="11111111"`, o valor é 0,99609375 × 2¹⁶ = **65280**. Esse é exatamente o resultado do Caso A da simulação (dois números altos somados geram *carry-out* e o expoente sobe de 15 para 16).
 
@@ -93,7 +95,9 @@ frac2 <= '1' & SW(8 downto 2);
 
 Fixar o operando 1 em valores altos (expoente máximo, fração quase toda em `1`) é proposital: assim qualquer soma com o operando 2 tende a estourar a fração (testando o *carry-out* do 4º estágio) sem precisar zerar todas as chaves manualmente a cada teste.
 
-### Mapeamento de pinos físicos (DE10-Lite, ver `quartus/de10lite_pin_assignments.csv`)
+### Mapeamento de pinos físicos (DE10-Lite)
+
+Ver o arquivo completo em `quartus/de10lite_pin_assignments.csv`. O diagrama abaixo mostra o caminho lógico das entradas até os sinais internos, e a tabela lista o mapeamento pino a pino.
 
 ```mermaid
 flowchart TB
@@ -118,12 +122,29 @@ flowchart TB
     CORE -->|sign_out| LEDR9["LEDR(9)"]
 ```
 
-| Sinal top-level | Pino FPGA | Sinal top-level | Pino FPGA |
-|---|---|---|---|
-| CLOCK_50 | PIN_P11 | HEX0[0..6] | C14,E15,C15,C16,E16,D17,C17 |
-| KEY[0] / KEY[1] | PIN_B8 / PIN_A7 | HEX1[0..6] | C18,D18,E18,B16,A17,A18,B17 |
-| SW[0..9] | C10,C11,D12,C12,A12,B12,A13,A14,B14,F15 | HEX2[0..6] | B20,A20,B19,A21,B21,C22,B22 |
-| LEDR[0] / LEDR[9] | PIN_A8 / PIN_B11 | HEX3[0..6] | F21,E22,E21,C19,C20,D19,E17 |
+**Tabela de pinos (um sinal por linha, sem colunas duplicadas):**
+
+| Sinal top-level | Pino(s) FPGA |
+|---|---|
+| CLOCK_50 | PIN_P11 |
+| KEY[0] | PIN_B8 |
+| KEY[1] | PIN_A7 |
+| SW[0] | PIN_C10 |
+| SW[1] | PIN_C11 |
+| SW[2] | PIN_D12 |
+| SW[3] | PIN_C12 |
+| SW[4] | PIN_A12 |
+| SW[5] | PIN_B12 |
+| SW[6] | PIN_A13 |
+| SW[7] | PIN_A14 |
+| SW[8] | PIN_B14 |
+| SW[9] | PIN_F15 |
+| LEDR[0] | PIN_A8 |
+| LEDR[9] | PIN_B11 |
+| HEX0[0..6] | PIN_C14, PIN_E15, PIN_C15, PIN_C16, PIN_E16, PIN_D17, PIN_C17 |
+| HEX1[0..6] | PIN_C18, PIN_D18, PIN_E18, PIN_B16, PIN_A17, PIN_A18, PIN_B17 |
+| HEX2[0..6] | PIN_B20, PIN_A20, PIN_B19, PIN_A21, PIN_B21, PIN_C22, PIN_B22 |
+| HEX3[0..6] | PIN_F21, PIN_E22, PIN_E21, PIN_C19, PIN_C20, PIN_D19, PIN_E17 |
 
 Dispositivo: **10M50DAF484C7G** (família MAX 10), família selecionada no Quartus Prime 24.1std.
 
@@ -138,7 +159,9 @@ O testbench (`rtl_original/v2_fp_adder_tb.vhd`) agora é **autoverificável**: u
 | **A** | Carry-out na adição (por isso `exp_out` precisou de 5 bits) | 0 1111 11111111 | 0 1111 11111111 | 0 | 10000 | 11111111 |
 | **B** | Subtração com zeros à esquerda (desloca e conta corretamente) | 0 0101 10100000 | 1 0101 10010000 | 0 | 00010 | 10000000 |
 | **C** | Resultado pequeno demais → vira zero (underflow) | 0 0001 10000000 | 1 0001 10000000 | 1 (ver nota) | 00000 | 00000000 |
-| **D** | Soma já normalizada, sem deslocamento e sem carry-out | 0 1111 10000000 | 0 1110 10000000 | 0 | 01111 | 11000000 |
+| **D** | Subtração com sinais diferentes — **valores reais reproduzidos e gravados em vídeo na placa física** (ver seção 4.2) | 0 1111 10011111 | 1 1111 11111111 | 1 (ver nota) | 01110 | 11000000 |
+
+**Nota sobre o Caso D:** o sinal de saída (`sign_out=1`) reflete o sinal do operando de maior magnitude ordenado no 1º estágio (o operando 2, que é negativo). O valor decimal correspondente é (−1)¹ × (0,5+0,25) × 2¹⁴ = **−12288**, exatamente o valor conferido manualmente no vídeo do grupo (seção 4.2).
 
 **Validação cruzada independente (Python):** como o ambiente onde esta documentação foi gerada não tem GHDL instalado, os 4 casos acima foram conferidos com um modelo golden em Python (`scripts/v2_golden_model.py`, reimplementação bit-exata dos 4 estágios), com resultado **4 PASS / 0 FAIL** (saída completa em `docs/evidencia_saida_python_v2.txt`). Essa validação **não substitui** a simulação oficial em GHDL exigida pelo roteiro — apenas confirma que os valores esperados escritos no testbench estão corretos antes do grupo gastar tempo depurando no GHDL/GTKWave.
 
@@ -189,10 +212,23 @@ Total pins : 50 / 360 (14%)
 
 O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (permanece na raiz do repositório como evidência histórica da primeira compilação bem-sucedida).
 
-> **Ação pendente do grupo:** gravar a placa (`Tools → Programmer`, `.sof` acima) e fotografar os 4 casos da tabela da seção anterior reproduzidos fisicamente nas chaves/botões, com os HEX0–HEX3 e o LEDR(9) visíveis. Lembrar que o Caso C (underflow) não é alcançável fisicamente nas chaves (ver seção 3) — fotografar apenas A, B e D na placa, e citar essa limitação no relatório.
+### 4.2 Evidência em vídeo — Caso D reproduzido fisicamente na placa
+
+O grupo gravou um vídeo (`WhatsApp Video 2026-08-09 at 01.06.21.mp4`) mostrando, passo a passo, o Caso D reproduzido na placa DE10-Lite já gravada com o bitstream `output_files/v2_fp_adder_de10lite.sof`. O vídeo cobre:
+
+1. **Configuração do operando 1 (`opf1`)** — chaves `SW1=0`, `SW0=0`, resultando em `frac1 = "10011111"` com `exp1` fixo em `"1111"` (15), reproduzindo exatamente o exemplo de conversão da seção 2.1 (valor 20352 antes de combinar com o operando 2).
+2. **Configuração do operando 2 (`opf2`)** — chave `SW9=1` (sinal negativo), chaves `SW8` a `SW2` todas em `1` (`frac2 = "11111111"`), botões `KEY1` e `KEY0` soltos/em nível alto (`exp2 = "1111"`, 15).
+3. **Leitura da saída nos displays** — `HEX0`/`HEX1` mostrando `frac_out = "11000000"` (0xC0), `HEX2`/`HEX3` mostrando `exp_out = "01110"` (14), e o LED `LEDR(9)` aceso indicando `sign_out = 1` (resultado negativo).
+4. **Conferência manual do valor decimal**, feita em voz alta no vídeo: (−1)¹ × (0,5 + 0,25) × 2¹⁴ = **−12288**.
+
+Esses são exatamente os valores agora usados no **Caso D** da tabela da seção 4.1, no testbench `rtl_original/v2_fp_adder_tb.vhd` e no modelo golden Python `scripts/v2_golden_model.py` — ou seja, o Caso D deixou de ser um caso sintético hipotético e passou a ser **evidência real, reproduzida fisicamente na placa e registrada em vídeo**, com o valor de saída também confirmado de forma independente pela simulação em Python (seção 4.1).
+
+O vídeo está com o grupo (compartilhado via WhatsApp); um frame ilustrativo da configuração do operando 2 foi anexado à cópia deste relatório no Google Docs.
+
+> **Ação pendente do grupo (atualizada):** o Caso D já está coberto por evidência física real (vídeo). Faltam apenas fotos (ou outro vídeo) da placa reproduzindo os **Casos A e B** — o Caso C (underflow) continua não sendo alcançável fisicamente nas chaves, pelo motivo já explicado na seção 3, e deve ser citado como limitação no relatório em vez de fotografado.
 
 ```
-<!-- Fotos da placa DE10-Lite funcionando, para os casos A, B e D -->
+<!-- Fotos da placa DE10-Lite funcionando, para os casos A e B -->
 <!-- ![Placa DE10-Lite - Caso A](caminho-da-imagem.png) -->
 ```
 
@@ -202,15 +238,15 @@ O arquivo de gravação `output_files/v2_fp_adder_de10lite.sof` já foi gerado (
 
 **Ferramenta:** Claude (Anthropic), modo Cowork, com acesso de leitura/escrita ao repositório GitHub via conector, e navegador (Claude in Chrome) para inspecionar imagens no GitHub.
 
-**Prompt utilizado (resumo fiel):** "faz uma revisao do documento e deixa em formato latex, e ve se cobre todos os requisitos, dentro do repositorio tem prints do gtkwave checa e ve se ta td certo, faz uma revisao geral do documento e do repositorio" — seguindo uma primeira rodada em que a IA já tinha organizado o repositório e escrito o README/documento inicial (prompt dessa rodada anterior registrado abaixo).
+**Prompt utilizado (resumo fiel):** "faz uma revisao do documento e deixa em formato latex, e ve se cobre todos os requisitos, dentro do repositorio tem prints do gtkwave checa e ve se ta td certo, faz uma revisao geral do documento e do repositorio" — seguindo uma primeira rodada em que a IA já tinha organizado o repositório e escrito o README/documento inicial (prompt dessa rodada anterior registrado abaixo). Numa rodada posterior, o grupo pediu: "faz uma checagem de formatacao, a parte do mapeamento n ta mt legal, ah tem um video explicando passo a passo o caso D do trabalho tem como mudar tb e documentar que esta td presente."
 
-**O que a IA fez nesta revisão:** abriu `GTKWave33.png` e `RESUMO: N PASS 0 FAIL.png` diretamente no GitHub (via navegador) para conferir o conteúdo real das imagens, em vez de assumir que estavam corretas; percebeu que os sinais mostrados (`exp_out[3:0]`, valores de teste diferentes) não batiam com o `v2_fp_adder` documentado; investigou o histórico de commits e encontrou que uma pasta `somador-pf/` — com um testbench autoverificável, um modelo golden em Python e documentação de achados de projeto — tinha sido **apagada** em 07/08/2026 (commit `7d1ab90b`, "Delete somador-pf directory") ao consolidar a versão final; recuperou o conteúdo dessa pasta pelo histórico do Git (não pelo estado atual), adaptou o testbench autoverificável e o modelo golden Python para a largura de 5 bits do `v2_fp_adder`, e corrigiu o README para não apresentar os prints antigos como se fossem evidência da versão atual.
+**O que a IA fez nesta revisão:** abriu `GTKWave33.png` e `RESUMO: N PASS 0 FAIL.png` diretamente no GitHub (via navegador) para conferir o conteúdo real das imagens, em vez de assumir que estavam corretas; percebeu que os sinais mostrados (`exp_out[3:0]`, valores de teste diferentes) não batiam com o `v2_fp_adder` documentado; investigou o histórico de commits e encontrou que uma pasta `somador-pf/` — com um testbench autoverificável, um modelo golden em Python e documentação de achados de projeto — tinha sido **apagada** em 07/08/2026 (commit `7d1ab90b`, "Delete somador-pf directory") ao consolidar a versão final; recuperou o conteúdo dessa pasta pelo histórico do Git (não pelo estado atual), adaptou o testbench autoverificável e o modelo golden Python para a largura de 5 bits do `v2_fp_adder`, e corrigiu o README para não apresentar os prints antigos como se fossem evidência da versão atual. Numa segunda rodada, a IA extraiu quadros de um vídeo enviado pelo grupo (via ffmpeg), leu as legendas em tela do vídeo para identificar os valores exatos de chaves/botões e a saída mostrada nos displays, atualizou o Caso D (testbench VHDL, modelo golden Python e este README) para usar esses valores reais em vez do caso sintético anterior, e reformatou a tabela de mapeamento de pinos (antes em 4 colunas cruzadas, difícil de ler) para uma tabela simples de 2 colunas.
 
 **O erro que a IA quase cometeu:** na primeira rodada, a IA tinha marcado a simulação como "ação pendente" sem checar se já existiam prints no repositório, e — se o usuário não tivesse pedido explicitamente para checar — a IA poderia ter aceito os prints antigos (`GTKWave33.png`) como evidência válida do `v2_fp_adder` sem notar que eles são de uma versão anterior (4 bits de expoente, valores de teste diferentes). Isso teria sido uma inconsistência grave no relatório final.
 
-**A correção humana ainda necessária:** a IA não tem GHDL instalado no seu ambiente (sem root/apt), então não pode rodar a simulação oficial nem gerar um print de GTKWave de verdade para o `v2_fp_adder` — só uma validação cruzada em Python (`scripts/v2_golden_model.py`), que não substitui a simulação exigida pelo roteiro. O grupo precisa rodar `ghdl`/`gtkwave` de verdade (comandos no cabeçalho de `rtl_original/v2_fp_adder_tb.vhd`) e colar a saída real no relatório, além de fotografar a placa fisicamente.
+**A correção humana ainda necessária:** a IA não tem GHDL instalado no seu ambiente (sem root/apt), então não pode rodar a simulação oficial nem gerar um print de GTKWave de verdade para o `v2_fp_adder` — só uma validação cruzada em Python (`scripts/v2_golden_model.py`), que não substitui a simulação exigida pelo roteiro. O grupo precisa rodar `ghdl`/`gtkwave` de verdade (comandos no cabeçalho de `rtl_original/v2_fp_adder_tb.vhd`) e colar a saída real no relatório, além de fotografar a placa fisicamente para os Casos A e B (o Caso D já está coberto pelo vídeo).
 
-**Quanto ajudou:** sem revisar o histórico completo do Git (não só o estado atual dos arquivos), a documentação teria citado imagens desatualizadas como evidência da versão errada do circuito — um erro que só apareceu porque o usuário pediu explicitamente para checar os prints existentes.
+**Quanto ajudou:** sem revisar o histórico completo do Git (não só o estado atual dos arquivos), a documentação teria citado imagens desatualizadas como evidência da versão errada do circuito — um erro que só apareceu porque o usuário pediu explicitamente para checar os prints existentes. Sem o vídeo real da placa, o Caso D continuaria sendo um exemplo hipotético em vez de evidência física comprovada.
 
 ### 5.2 Sessão anterior recuperada do histórico (também com IA, antes de 07/08/2026)
 
@@ -239,7 +275,7 @@ Taxonomia de referência: https://credit.niso.org/
 ├── README.md                          <- este tutorial (entrega da Etapa 4)
 ├── rtl_original/                      <- Etapa 1: núcleo matemático (não alterado, exceto exp_out)
 │   ├── v2_fp_adder.vhd
-│   └── v2_fp_adder_tb.vhd             <- testbench AUTOVERIFICAVEL, 4 casos
+│   └── v2_fp_adder_tb.vhd             <- testbench AUTOVERIFICAVEL, 4 casos (D = video real)
 ├── rtl_de10lite/                      <- Etapa 2: adaptação para a placa
 │   ├── v2_fp_adder_de10lite.vhd       <- top-level (SW/KEY -> HEX/LEDR)
 │   └── hex_to_sseg.vhd
@@ -248,7 +284,7 @@ Taxonomia de referência: https://credit.niso.org/
 │   ├── v2_fp_adder_de10lite.qsf
 │   └── de10lite_pin_assignments.csv
 ├── scripts/
-│   └── v2_golden_model.py             <- validacao cruzada independente (Python)
+│   └── v2_golden_model.py             <- validacao cruzada independente (Python), Caso D = video real
 ├── docs/
 │   └── evidencia_saida_python_v2.txt  <- saida do golden model (4 PASS / 0 FAIL)
 ├── output_files/                      <- evidência: .sof/.pof e relatórios já gerados (primeira compilação bem-sucedida, 07/08/2026)
@@ -269,13 +305,14 @@ Taxonomia de referência: https://credit.niso.org/
 - [x] `v2_fp_adder.vhd` identificado como núcleo original, com a correção de largura de `exp_out` (4→5 bits) documentada
 - [x] Testbench autoverificável (PASS/FAIL) com os 4 casos exigidos — `rtl_original/v2_fp_adder_tb.vhd`
 - [x] Validação cruzada independente em Python (4 PASS / 0 FAIL) — `scripts/v2_golden_model.py`
-- [x] Mapeamento de pinos SW/KEY/HEX/LEDR documentado e justificado
+- [x] Mapeamento de pinos SW/KEY/HEX/LEDR documentado e justificado (tabela reformatada em 09/08)
 - [x] Projeto Quartus organizado em `quartus/`, com dispositivo `10M50DAF484C7G`
 - [x] Evidência de compilação bem-sucedida (`output_files/*.fit.summary`)
 - [x] Prints existentes no repositório conferidos (são de uma versão anterior — ver nota na seção 4.1)
+- [x] Caso D comprovado fisicamente por vídeo na placa (chaves, HEX, LEDR, interpretação decimal −12288) — ver seção 4.2
 - [ ] Rodar o GHDL de verdade sobre `v2_fp_adder_tb.vhd` e colar a saída `[PASS]`/`RESUMO` real (pendente — ação do grupo)
 - [ ] Print do GTKWave/Questa com os 4 casos do `v2_fp_adder` (pendente — ação do grupo)
-- [ ] Fotos da placa gravada e testada fisicamente para os casos A, B e D (pendente — ação do grupo)
+- [ ] Fotos (ou vídeo) da placa gravada e testada fisicamente para os casos A e B (pendente — ação do grupo; Caso C não é alcançável fisicamente, ver seção 3; Caso D já coberto por vídeo)
 - [ ] Diário de Bordo de IA de sessões futuras preenchido pelo grupo
 - [x] Taxonomia CRediT (sugestão inicial — grupo deve validar)
 - [ ] Repositório marcado como **Privado** no GitHub (o roteiro da disciplina pede repositório privado; hoje ele está público)
